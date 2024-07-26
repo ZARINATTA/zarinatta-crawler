@@ -27,7 +27,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CrawlerService {
+public class CrawlerServiceV1 implements CrawlerService{
 
     private final TicketRepository ticketRepository;
 
@@ -144,6 +144,6 @@ public class CrawlerService {
             }
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
-        System.out.println("걸린 시간 : " + estimatedTime/1000.0 + " milli seconds");
+        System.out.println("총 걸린 시간 : " + estimatedTime/1000.0 + " seconds");
     }
 }
