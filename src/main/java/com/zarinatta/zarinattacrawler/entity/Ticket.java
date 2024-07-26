@@ -2,6 +2,7 @@ package com.zarinatta.zarinattacrawler.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,24 +23,35 @@ public class Ticket {
     private String ticketType;
 
     @Column(nullable = false)
-    private LocalDate arriveDate;
+    private String arriveDate;
 
     @Column(nullable = false)
-    private LocalTime arriveTime;
+    private String arriveTime;
 
     @Column(nullable = false)
     private String arriveStation;
 
     @Column(nullable = false)
-    private LocalDate departTime;
+    private String departTime;
 
     @Column(nullable = false)
-    private LocalTime departStation;
+    private String departStation;
 
     @Column(nullable = false)
-    private int price;
+    private String price;
 
     @Column(nullable = false)
     private boolean soldOut;
 
+    @Builder
+    public Ticket(String ticketType, String arriveDate, String arriveTime, String arriveStation, String departTime, String departStation, String price, boolean soldOut) {
+        this.ticketType = ticketType;
+        this.arriveDate = arriveDate;
+        this.arriveTime = arriveTime;
+        this.arriveStation = arriveStation;
+        this.departTime = departTime;
+        this.departStation = departStation;
+        this.price = price;
+        this.soldOut = soldOut;
+    }
 }
