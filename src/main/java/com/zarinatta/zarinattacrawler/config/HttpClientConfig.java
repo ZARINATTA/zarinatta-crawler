@@ -58,54 +58,18 @@ public class HttpClientConfig {
 
         for (MainStation depart : MainStation.values()) {
             for (MainStation arrive : MainStation.values()) {
-                List<NameValuePair> params = new ArrayList<>();
-                params.add(new BasicNameValuePair("selGoTrain", "05"));
-                params.add(new BasicNameValuePair("txtPsgFlg_1", "1"));
-                params.add(new BasicNameValuePair("txtPsgFlg_2", "0"));
-                params.add(new BasicNameValuePair("txtPsgFlg_8", "0"));
-                params.add(new BasicNameValuePair("txtPsgFlg_3", "0"));
-                params.add(new BasicNameValuePair("txtPsgFlg_4", "0"));
-                params.add(new BasicNameValuePair("txtPsgFlg_5", "0"));
-                params.add(new BasicNameValuePair("txtSeatAttCd_3", "000"));
-                params.add(new BasicNameValuePair("txtSeatAttCd_2", "000"));
-                params.add(new BasicNameValuePair("txtSeatAttCd_4", "015"));
-                params.add(new BasicNameValuePair("selGoTrainRa", "05"));
-                params.add(new BasicNameValuePair("radJobId", "1"));
-                params.add(new BasicNameValuePair("selGoSeat1", "015"));
-                params.add(new BasicNameValuePair("txtPsgCnt1", "1"));
-                params.add(new BasicNameValuePair("txtGoPage", "1"));
-                params.add(new BasicNameValuePair("checkStnNm", "Y"));
-                params.add(new BasicNameValuePair("SeandYo", "N"));
-                params.add(new BasicNameValuePair("chkInitFlg", "Y"));
-                params.add(new BasicNameValuePair("txtMenuId", "11"));
-                params.add(new BasicNameValuePair("ra", "1"));
-                params.add(new BasicNameValuePair("txtPsgTpCd1", "1"));
-                params.add(new BasicNameValuePair("txtPsgTpCd2", "3"));
-                params.add(new BasicNameValuePair("txtPsgTpCd3", "1"));
-                params.add(new BasicNameValuePair("txtPsgTpCd5", "1"));
-                params.add(new BasicNameValuePair("txtPsgTpCd7", "1"));
-                params.add(new BasicNameValuePair("txtPsgTpCd8", "3"));
-                params.add(new BasicNameValuePair("txtDiscKndCd1", "000"));
-                params.add(new BasicNameValuePair("txtDiscKndCd2", "000"));
-                params.add(new BasicNameValuePair("txtDiscKndCd3", "111"));
-                params.add(new BasicNameValuePair("txtDiscKndCd5", "131"));
-                params.add(new BasicNameValuePair("txtDiscKndCd7", "112"));
-                params.add(new BasicNameValuePair("txtDiscKndCd8", "321"));
-                params.add(new BasicNameValuePair("txtGoStart", URLEncoder.encode(depart.getName(), StandardCharsets.UTF_8)));
-                params.add(new BasicNameValuePair("txtGoEnd", URLEncoder.encode(arrive.getName(), StandardCharsets.UTF_8)));
-                params.add(new BasicNameValuePair("selGoYear", today.format(year)));
-                params.add(new BasicNameValuePair("selGoMonth", today.format(month)));
-                params.add(new BasicNameValuePair("selGoDay", today.format(day)));
-                params.add(new BasicNameValuePair("txtGoAbrdDt", today.format(total)));
-                params.add(new BasicNameValuePair("txtGoYoil", URLEncoder.encode(today.format(week), StandardCharsets.UTF_8)));
-                params.add(new BasicNameValuePair("selGoHour", "19"));
-                params.add(new BasicNameValuePair("txtGoHour", "192100"));
-
-
+                String payload ="txtGoStartCode=&txtGoEndCode=&radJobId=1&selGoTrain=05&txtSeatAttCd_4=015&txtSeatAttCd_3=000&txtSeatAttCd_2=000&txtPsgFlg_2=0&txtPsgFlg_3=0&txtPsgFlg_4=0&txtPsgFlg_5=0&chkCpn=N&selGoSeat1=015&selGoSeat2=&txtPsgCnt1=1&txtPsgCnt2=0&txtGoPage=1&txtGoAbrdDt="+today.format(total)+"&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
+                        "&txtGoStart="+URLEncoder.encode(depart.getName(), StandardCharsets.UTF_8)+
+                        "&txtGoEnd="+URLEncoder.encode(arrive.getName(), StandardCharsets.UTF_8)+
+                        "&start=2024.7.30&selGoHour=00&txtGoHour=000000&selGoYear="+today.format(year)+
+                        "&selGoMonth="+today.format(month)+
+                        "&selGoDay="+today.format(day)+
+                        "&txtGoYoil="+URLEncoder.encode(today.format(week), StandardCharsets.UTF_8)+"" +
+                        "&txtPsgFlg_1=1";
                 HttpPost post = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");
                 post.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
                 post.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
-                post.setEntity(new UrlEncodedFormEntity(params));
+                post.setEntity(new StringEntity(payload, ContentType.APPLICATION_FORM_URLENCODED));
                 requests.add(post);
             }
         }

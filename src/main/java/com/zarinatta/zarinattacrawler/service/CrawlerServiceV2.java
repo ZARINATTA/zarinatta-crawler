@@ -45,7 +45,6 @@ public class CrawlerServiceV2 {
         long startTime = System.currentTimeMillis();
         for (int index = 0; index < 1764; index++) {
             HttpPost post = httpPostRequests.get(index);
-            System.out.println(post.getEntity());
             try (CloseableHttpResponse response = httpClient.execute(post)) {
                 byte[] bytes = response.getEntity().getContent().readAllBytes();
                 String responseBody = new String(bytes, StandardCharsets.UTF_8);
