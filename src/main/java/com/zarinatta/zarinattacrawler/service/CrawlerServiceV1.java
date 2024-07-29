@@ -1,6 +1,7 @@
 package com.zarinatta.zarinattacrawler.service;
 
 import com.zarinatta.zarinattacrawler.entity.Ticket;
+import com.zarinatta.zarinattacrawler.enums.MainStation;
 import com.zarinatta.zarinattacrawler.enums.Station;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CrawlerServiceV1 implements CrawlerService{
+public class CrawlerServiceV1 {
 
     private final TicketRepository ticketRepository;
 
@@ -108,8 +109,8 @@ public class CrawlerServiceV1 implements CrawlerService{
         headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
         headers.put("Content-Language", "ko-KR");
 
-        for(Station depart : Station.values()){
-            for(Station arrive : Station.values()){
+        for(MainStation depart : MainStation.values()){
+            for(MainStation arrive : MainStation.values()){
                 payload.put("txtGoStart", depart.getName());
                 payload.put("txtGoEnd", arrive.getName());
                 Connection.Response response = null;
