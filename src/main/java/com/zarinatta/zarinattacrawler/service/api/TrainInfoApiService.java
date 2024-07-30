@@ -30,9 +30,10 @@ public class TrainInfoApiService {
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
 
     @Transactional
-    public void getTrainInfo() throws IOException {
+    public void getTrainInfo(){
         for (MainStationCode depPlaceId : MainStationCode.values()) {
             for (MainStationCode arrPlaceId : MainStationCode.values()) {
+                try {
                 // URL 생성
                 LocalDate today = LocalDate.now();
                 DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -63,9 +64,12 @@ public class TrainInfoApiService {
                 while ((line = rd.readLine()) != null) {
                     sb.append(line);
                 }
-                rd.close();
-                conn.disconnect();
-                convertToJsonAndSave(sb);
+                    rd.close();
+                    conn.disconnect();
+                    convertToJsonAndSave(sb);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
