@@ -58,7 +58,8 @@ public class HttpClientConfig {
 
         for (MainStation depart : MainStation.values()) {
             for (MainStation arrive : MainStation.values()) {
-                String payload ="txtGoStartCode=&txtGoEndCode=&radJobId=1&selGoTrain=05&txtSeatAttCd_4=015&txtSeatAttCd_3=000&txtSeatAttCd_2=000&txtPsgFlg_2=0&txtPsgFlg_3=0&txtPsgFlg_4=0&txtPsgFlg_5=0&chkCpn=N&selGoSeat1=015&selGoSeat2=&txtPsgCnt1=1&txtPsgCnt2=0&txtGoPage=1&txtGoAbrdDt="+today.format(total)+"&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
+                String payload ="txtGoStartCode=&txtGoEndCode=&radJobId=1&selGoTrain=05&txtSeatAttCd_4=015&txtSeatAttCd_3=000&txtSeatAttCd_2=000&txtPsgFlg_2=0&txtPsgFlg_3=0&txtPsgFlg_4=0&txtPsgFlg_5=0&chkCpn=N&selGoSeat1=015&selGoSeat2=&txtPsgCnt1=1&txtPsgCnt2=0&txtGoPage=1" +
+                        "&txtGoAbrdDt="+today.format(total)+"&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
                         "&txtGoStart="+URLEncoder.encode(depart.getName(), StandardCharsets.UTF_8)+
                         "&txtGoEnd="+URLEncoder.encode(arrive.getName(), StandardCharsets.UTF_8)+
                         "&start=2024.7.30&selGoHour=00&txtGoHour=000000&selGoYear="+today.format(year)+
