@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service;
+package com.zarinatta.zarinattacrawler.service.crawler;
 
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.MainStation;
@@ -133,7 +133,7 @@ public class CrawlerServiceV1 {
                     if (ticketInfo.size() > 4 && !ticketInfo.get(1).startsWith("SRT")){
                         ticketRepository.save(Ticket.builder()
                                         .ticketType(ticketInfo.get(1))
-                                        .arriveDate(ticketInfo.get(2))
+                                        .departDate(ticketInfo.get(2))
                                         .arriveTime(ticketInfo.get(2))
                                         .arriveStation(ticketInfo.get(2))
                                         .departTime(ticketInfo.get(3))

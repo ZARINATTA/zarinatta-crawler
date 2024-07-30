@@ -1,8 +1,7 @@
 package com.zarinatta.zarinattacrawler.controller;
 
-import com.zarinatta.zarinattacrawler.service.CrawlerServiceV1;
-import com.zarinatta.zarinattacrawler.service.CrawlerServiceV2;
-import com.zarinatta.zarinattacrawler.service.CrawlerServiceV3;
+
+import com.zarinatta.zarinattacrawler.service.crawler.CrawlerServiceV3;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;

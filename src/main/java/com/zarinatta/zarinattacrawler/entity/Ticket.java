@@ -22,14 +22,9 @@ public class Ticket {
     @Column(nullable = false)
     private String ticketType;
 
+    // 출발
     @Column(nullable = false)
-    private String arriveDate;
-
-    @Column(nullable = false)
-    private String arriveTime;
-
-    @Column(nullable = false)
-    private String arriveStation;
+    private String departDate;
 
     @Column(nullable = false)
     private String departTime;
@@ -37,20 +32,27 @@ public class Ticket {
     @Column(nullable = false)
     private String departStation;
 
+    // 도착
+    @Column(nullable = false)
+    private String arriveTime;
+
+    @Column(nullable = false)
+    private String arriveStation;
+
     @Column(nullable = false)
     private String price;
 
-    @Column(nullable = false)
+    @Column
     private boolean soldOut;
 
     @Builder
-    public Ticket(String ticketType, String arriveDate, String arriveTime, String arriveStation, String departTime, String departStation, String price, boolean soldOut) {
+    public Ticket(String ticketType, String departDate, String departTime, String departStation, String arriveTime, String arriveStation, String price, boolean soldOut) {
         this.ticketType = ticketType;
-        this.arriveDate = arriveDate;
-        this.arriveTime = arriveTime;
-        this.arriveStation = arriveStation;
+        this.departDate = departDate;
         this.departTime = departTime;
         this.departStation = departStation;
+        this.arriveTime = arriveTime;
+        this.arriveStation = arriveStation;
         this.price = price;
         this.soldOut = soldOut;
     }
