@@ -1,7 +1,9 @@
 package com.zarinatta.zarinattacrawler.entity;
 
+import com.zarinatta.zarinattacrawler.enums.SeatState;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,25 +23,54 @@ public class Ticket {
     @Column(nullable = false)
     private String ticketType;
 
+    // 출발
     @Column(nullable = false)
-    private LocalDate arriveDate;
+    private String departDate;
 
     @Column(nullable = false)
-    private LocalTime arriveTime;
+    private String departTime;
+
+    @Column(nullable = false)
+    private String departStation;
+
+    // 도착
+    @Column(nullable = false)
+    private String arriveTime;
 
     @Column(nullable = false)
     private String arriveStation;
 
     @Column(nullable = false)
-    private LocalDate departTime;
+    private String price;
 
-    @Column(nullable = false)
-    private LocalTime departStation;
+    @Column
+    @Enumerated(EnumType.STRING)
+    private SeatState firstClassSoldOut;
 
-    @Column(nullable = false)
-    private int price;
+    @Column
+    @Enumerated(EnumType.STRING)
+    private SeatState normalSeatSoldOut;
 
-    @Column(nullable = false)
-    private boolean soldOut;
+    @Column
+    @Enumerated(EnumType.STRING)
+    private SeatState babySeatSoldOut;
 
+    @Column
+    private boolean waitingSoldOut;
+
+
+    @Builder
+    public Ticket(String ticketType, String departDate, String departTime, String departStation, String arriveTime, String arriveStation, String price, SeatState firstClassSoldOut, SeatState normalSeatSoldOut, SeatState babySeatSoldOut, boolean waitingSoldOut) {
+        this.ticketType = ticketType;
+        this.departDate = departDate;
+        this.departTime = departTime;
+        this.departStation = departStation;
+        this.arriveTime = arriveTime;
+        this.arriveStation = arriveStation;
+        this.price = price;
+        this.firstClassSoldOut = firstClassSoldOut;
+        this.normalSeatSoldOut = normalSeatSoldOut;
+        this.babySeatSoldOut = babySeatSoldOut;
+        this.waitingSoldOut = waitingSoldOut;
+    }
 }
