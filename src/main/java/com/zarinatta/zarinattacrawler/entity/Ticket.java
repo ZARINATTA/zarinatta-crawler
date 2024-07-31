@@ -1,5 +1,6 @@
 package com.zarinatta.zarinattacrawler.entity;
 
+import com.zarinatta.zarinattacrawler.enums.SeatState;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -43,10 +44,23 @@ public class Ticket {
     private String price;
 
     @Column
-    private boolean soldOut;
+    @Enumerated(EnumType.STRING)
+    private SeatState firstClassSoldOut;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private SeatState normalSeatSoldOut;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private SeatState babySeatSoldOut;
+
+    @Column
+    private boolean waitingSoldOut;
+
 
     @Builder
-    public Ticket(String ticketType, String departDate, String departTime, String departStation, String arriveTime, String arriveStation, String price, boolean soldOut) {
+    public Ticket(String ticketType, String departDate, String departTime, String departStation, String arriveTime, String arriveStation, String price, SeatState firstClassSoldOut, SeatState normalSeatSoldOut, SeatState babySeatSoldOut, boolean waitingSoldOut) {
         this.ticketType = ticketType;
         this.departDate = departDate;
         this.departTime = departTime;
@@ -54,6 +68,9 @@ public class Ticket {
         this.arriveTime = arriveTime;
         this.arriveStation = arriveStation;
         this.price = price;
-        this.soldOut = soldOut;
+        this.firstClassSoldOut = firstClassSoldOut;
+        this.normalSeatSoldOut = normalSeatSoldOut;
+        this.babySeatSoldOut = babySeatSoldOut;
+        this.waitingSoldOut = waitingSoldOut;
     }
 }
