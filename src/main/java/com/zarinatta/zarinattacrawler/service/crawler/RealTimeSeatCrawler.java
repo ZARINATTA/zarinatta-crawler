@@ -42,6 +42,7 @@ public class RealTimeSeatCrawler {
         ticketList = ticketRepository.findAll();
         realtimeSeatCrawler();
     }
+
     @Transactional
     public void realtimeSeatCrawler() {
         long startTime = System.currentTimeMillis();
@@ -50,7 +51,7 @@ public class RealTimeSeatCrawler {
             for (MainStationCode arrive : MainStationCode.values()) {
                 if (depart.equals(arrive)) break;
                 LocalDateTime crawlingTime = now;
-                while (!crawlingTime.toLocalDate().isAfter(now.toLocalDate().plusDays(7))) {
+                while (!crawlingTime.toLocalDate().isAfter(now.toLocalDate().plusDays(6))) {
                     HttpPost post = makeHttpPost(depart, arrive, crawlingTime);
                     try (CloseableHttpResponse response = httpClient.execute(post)) { // 데이터 가져 오기
                         byte[] bytes = response.getEntity().getContent().readAllBytes();
@@ -67,40 +68,48 @@ public class RealTimeSeatCrawler {
                             String normalSeat = ticket.select("td:nth-of-type(6) img").attr("alt");
                             String babySeat = ticket.select("td:nth-of-type(7) img").attr("alt");
                             if (ticketInfo.size() > 4 && !ticketInfo.get(1).startsWith("SRT")) {
-                                //Ticket ticketDB = findTicket(ticketInfo.get(1), ticketInfo.get(2));
-                                //todo 가져온 티켓 처리
+                                //todo 임의로 만든 내용임
+                                ticketRepository.save(
+                                        Ticket.builder()
+                                                .ticketType(ticketInfo.get(1))
+                                                .departDate(ticketInfo.get(2))
+                                                .arriveTime(ticketInfo.get(2))
+                                                .arriveStation(ticketInfo.get(2))
+                                                .departTime(ticketInfo.get(3))
+                                                .departStation(ticketInfo.get(3))
+                                                .price(ticketInfo.get(4))
+                                                .build());
                             }
                         }
                         // 다음 쪽으로 이동
-                        String text = table.select("#divResult > table.btn > tbody > tr > td > a > img").attr("alt");
-                        System.out.println(text);
-                        if (text.equals("다음")) {
-                            String time = table.select("tr:last-of-type td:nth-of-type(4)").html().split("<br>")[1].trim();
-                            Pattern pattern = Pattern.compile("(\\d{2}):(\\d{2})");
-                            Matcher matcher = pattern.matcher(time);
-                            if (matcher.find()) {
-                                String hourStr = matcher.group(1);
-                                String minuteStr = matcher.group(2);
-                                // 문자열을 int로 변환
-                                int hour = Integer.parseInt(hourStr);
-                                int minute = Integer.parseInt(minuteStr);
-                                LocalTime newTime = LocalTime.of(hour, minute, 00);
-                                crawlingTime = crawlingTime.withHour(newTime.getHour())
-                                        .withMinute(newTime.getMinute())
-                                        .withSecond(newTime.getSecond());
-                            }
-                        } else {
-                            crawlingTime = crawlingTime.plusDays(1);
-                            LocalTime newTime = LocalTime.of(00, 00, 00);
-                            crawlingTime = crawlingTime.withHour(newTime.getHour())
-                                    .withMinute(newTime.getMinute())
-                                    .withSecond(newTime.getSecond());
-                        }
+                        String nextPage = table.select("#divResult > table.btn > tbody > tr > td").html();
+                        System.out.println(nextPage);
+                        Pattern timeExtractor = Pattern.compile("btnNextReserve\\('([0-9]{8})', '([0-9]{6})'\\)");
+                        Matcher timeMatcher = timeExtractor.matcher(nextPage);
+                        if (timeMatcher.find()) {
+                            String date = timeMatcher.group(1);
+                            String time = timeMatcher.group(2);
+                            System.out.println("date: " + date);
+                            System.out.println("time: " + time);
+                            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+                            LocalDateTime newDateTime = LocalDateTime.parse(date + time, dateFormatter);
+                            // crawlingTime을 newDateTime으로 갱신
+                            crawlingTime = crawlingTime.withYear(newDateTime.getYear())
+                                    .withMonth(newDateTime.getMonthValue())
+                                    .withDayOfMonth(newDateTime.getDayOfMonth())
+                                    .withHour(newDateTime.getHour())
+                                    .withMinute(newDateTime.getMinute())
+                                    .withSecond(newDateTime.getSecond());
 
+                            // 결과 출력
+                            System.out.println("Updated crawlingTime: " + crawlingTime);
+                        } else {
+                            System.out.println("No next page");
+                            crawlingTime = crawlingTime.plusDays(7);
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
-                    }
-                    finally {
+                    } finally {
                         post.reset();
                     }
 
@@ -112,11 +121,27 @@ public class RealTimeSeatCrawler {
         System.out.println("총 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
     }
 
-    public HttpPost makeHttpPost(MainStationCode depart, MainStationCode arrive, LocalDateTime crawlingTime){
+    public HttpPost makeHttpPost(MainStationCode depart, MainStationCode arrive, LocalDateTime crawlingTime) {
         HttpPost httpPost = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");
-        httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-        httpPost.setHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36");
-        httpPost.setHeader("Connection:", "keep-alive");
+        httpPost.setHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+        httpPost.setHeader("accept-encoding", "gzip, deflate, br, zstd");
+        httpPost.setHeader("accept-language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
+        httpPost.setHeader("cache-control", "max-age=0");
+        httpPost.setHeader("connection", "keep-alive");
+        httpPost.setHeader("content-type", "application/x-www-form-urlencoded");
+        httpPost.setHeader("cookie", "WMONID=MXemLXO1KF-; _ga=GA1.1.1244795697.1717413303; pop_202404090001=done; JSESSIONID=gUjGo5vKviaUDFydiLATaZvDvWJOHQaHChLLWZwlEb1hhNawzXprhMYHsaCQ1jiF.kr005_servlet_engine4; _ga_LP2TSNTFG1=GS1.1.1722758826.53.1.1722762620.0.0.0");
+        httpPost.setHeader("host", "www.letskorail.com");
+        httpPost.setHeader("origin", "https://www.letskorail.com");
+        httpPost.setHeader("sec-ch-ua", "\"Not)A;Brand\";v=\"99\", \"Google Chrome\";v=\"127\", \"Chromium\";v=\"127\"");
+        httpPost.setHeader("sec-ch-ua-mobile", "?0");
+        httpPost.setHeader("sec-ch-ua-platform", "\"Windows\"");
+        httpPost.setHeader("sec-fetch-dest", "document");
+        httpPost.setHeader("sec-fetch-mode", "navigate");
+        httpPost.setHeader("sec-fetch-site", "same-origin");
+        httpPost.setHeader("sec-fetch-user", "?1");
+        httpPost.setHeader("upgrade-insecure-requests", "1");
+        httpPost.setHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+
         DateTimeFormatter year = DateTimeFormatter.ofPattern("YYYY");
         DateTimeFormatter month = DateTimeFormatter.ofPattern("MM");
         DateTimeFormatter day = DateTimeFormatter.ofPattern("dd");
@@ -134,19 +159,7 @@ public class RealTimeSeatCrawler {
                 "&txtGoHour=" + crawlingTime.format(txtGoHourFormat) + "00" +
                 "&txtPsgFlg_1=1";
         httpPost.setEntity(new StringEntity(payload, StandardCharsets.UTF_8));
+        System.out.println(payload);
         return httpPost;
     }
-
-
-    private Ticket findTicket(String trainNo, String departTime){
-        for (Ticket ticket : ticketList) {
-            String departTimeDB = String.format("%s:%s", ticket.getDepartTime().substring(8, 10), ticket.getDepartTime().substring(10, 12));
-            String departTimeCrawl = departTime.substring(departTime.length() - 5);
-            if (ticket.getTicketType().contains(trainNo) && departTimeCrawl.equals(departTimeDB)) {
-                return ticket;
-            }
-        }
-        throw new RuntimeException("Ticket not found"+trainNo+" "+departTime);
-    }
-
 }
