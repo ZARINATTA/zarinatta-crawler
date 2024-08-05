@@ -1,15 +1,12 @@
 package com.zarinatta.zarinattacrawler.entity;
 
 import com.zarinatta.zarinattacrawler.enums.SeatState;
+import com.zarinatta.zarinattacrawler.enums.StationCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -18,6 +15,7 @@ import java.time.LocalTime;
 public class Ticket {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ticket_id")
     private Long id;
 
     @Column(nullable = false)
@@ -31,36 +29,23 @@ public class Ticket {
     private String departTime;
 
     @Column(nullable = false)
-    private String departStation;
+    @Enumerated(EnumType.STRING)
+    private StationCode departStation;
 
     // 도착
     @Column(nullable = false)
     private String arriveTime;
 
     @Column(nullable = false)
-    private String arriveStation;
+    @Enumerated(EnumType.STRING)
+    private StationCode arriveStation;
 
     @Column(nullable = false)
     private String price;
 
-    @Column
-    @Enumerated(EnumType.STRING)
-    private SeatState firstClassSoldOut;
-
-    @Column
-    @Enumerated(EnumType.STRING)
-    private SeatState normalSeatSoldOut;
-
-    @Column
-    @Enumerated(EnumType.STRING)
-    private SeatState babySeatSoldOut;
-
-    @Column
-    private boolean waitingSoldOut;
-
 
     @Builder
-    public Ticket(String ticketType, String departDate, String departTime, String departStation, String arriveTime, String arriveStation, String price, SeatState firstClassSoldOut, SeatState normalSeatSoldOut, SeatState babySeatSoldOut, boolean waitingSoldOut) {
+    public Ticket(String ticketType, String departDate, String departTime, StationCode departStation, String arriveTime, StationCode arriveStation, String price) {
         this.ticketType = ticketType;
         this.departDate = departDate;
         this.departTime = departTime;
@@ -68,9 +53,5 @@ public class Ticket {
         this.arriveTime = arriveTime;
         this.arriveStation = arriveStation;
         this.price = price;
-        this.firstClassSoldOut = firstClassSoldOut;
-        this.normalSeatSoldOut = normalSeatSoldOut;
-        this.babySeatSoldOut = babySeatSoldOut;
-        this.waitingSoldOut = waitingSoldOut;
     }
 }
