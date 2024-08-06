@@ -103,9 +103,7 @@ public class TrainInfoApiService {
                 .ticketType(trainGradeName + " " + trainNo)
                 .departDate(depPlandTime.substring(0, 8))
                 .departTime(depPlandTime)
-                .departStation(depPlaceName)
                 .arriveTime(arrPlandTime)
-                .arriveStation(arrPlaceName)
                 .price(adultCharge + "원")
                 .build());
     }

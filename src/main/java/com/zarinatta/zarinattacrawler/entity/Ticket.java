@@ -1,6 +1,5 @@
 package com.zarinatta.zarinattacrawler.entity;
 
-import com.zarinatta.zarinattacrawler.enums.SeatState;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

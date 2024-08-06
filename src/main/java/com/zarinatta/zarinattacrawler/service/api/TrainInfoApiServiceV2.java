@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.MainStationCode;
+import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,8 @@ public class TrainInfoApiServiceV2 {
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
-    private final ExecutorService executorService = Executors.newFixedThreadPool(40);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+
     @Transactional
     public void getTrainInfo() {
         List<Future<Void>> futures = new ArrayList<>();
@@ -119,9 +121,7 @@ public class TrainInfoApiServiceV2 {
                             .ticketType(trainGradeName + " " + trainNo)
                             .departDate(depPlandTime.substring(0, 8))
                             .departTime(depPlandTime)
-                            .departStation(depPlaceName)
                             .arriveTime(arrPlandTime)
-                            .arriveStation(arrPlaceName)
                             .price(adultCharge + "원")
                             .build());
                 }

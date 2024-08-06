@@ -74,9 +74,7 @@ public class RealTimeSeatCrawler {
                                                 .ticketType(ticketInfo.get(1))
                                                 .departDate(ticketInfo.get(2))
                                                 .arriveTime(ticketInfo.get(2))
-                                                .arriveStation(ticketInfo.get(2))
                                                 .departTime(ticketInfo.get(3))
-                                                .departStation(ticketInfo.get(3))
                                                 .price(ticketInfo.get(4))
                                                 .build());
                             }

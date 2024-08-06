@@ -68,9 +68,7 @@ public class TrainInfoApiTest {
                         .ticketType(trainGradeName + " " + trainNo)
                         .departDate("20230403")
                         .departTime(depPlandTime)
-                        .departStation(depPlaceName)
                         .arriveTime(arrPlandTime)
-                        .arriveStation(arrPlaceName)
                         .price(adultCharge + "원")
                         .build());
                 System.out.println("출발역: " + depPlaceName);

@@ -1,9 +1,6 @@
 package com.zarinatta.zarinattacrawler.service.crawler;
 
 import com.zarinatta.zarinattacrawler.entity.Ticket;
-import com.zarinatta.zarinattacrawler.enums.MainStation;
-import com.zarinatta.zarinattacrawler.enums.SeatState;
-import com.zarinatta.zarinattacrawler.enums.Station;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,11 +59,8 @@ public class CrawlerServiceV2 {
                                 .ticketType(ticketInfo.get(1))
                                 .departDate(ticketInfo.get(2))
                                 .arriveTime(ticketInfo.get(2))
-                                .arriveStation(ticketInfo.get(2))
                                 .departTime(ticketInfo.get(3))
-                                .departStation(ticketInfo.get(3))
-                                .price(ticketPrice)
-                                .normalSeatSoldOut(ticketSeat.get(0).equals("좌석매진") ? SeatState.SOLD_OUT : SeatState.RESERVATION).build());
+                                .price(ticketPrice).build());
                     }
                 }
             } catch (IOException e) {
