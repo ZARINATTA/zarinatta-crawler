@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.api;
+package com.zarinatta.zarinattacrawler.service.api.legacy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;

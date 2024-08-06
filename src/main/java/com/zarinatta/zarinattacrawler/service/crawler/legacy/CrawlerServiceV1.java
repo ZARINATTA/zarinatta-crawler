@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.crawler;
+package com.zarinatta.zarinattacrawler.service.crawler.legacy;
 
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.MainStation;
