@@ -77,7 +77,8 @@ public class RealTimeSeatCrawlerV2 {
                         String babySeat = ticket.select("td:nth-of-type(7) img").attr("alt");
                         String waitSeat = ticket.select("td:nth-of-type(10) img").attr("alt");
                         System.out.println(target.getDepartTime());
-                        System.out.println();
+                        System.out.println(firstClass+" "+normalSeat+" "+babySeat+" "+waitSeat);
+                        // todo 즐겨찾기 표 찾아지는거 까지 확인 했음 -> 이제 즐겨찾기 표 찾아지면 알림 보내기
                     }
                 }
             } catch (IOException e) {
@@ -117,7 +118,7 @@ public class RealTimeSeatCrawlerV2 {
                 "&selGoYear=" + crawlingTime.substring(0, 4) +
                 "&selGoMonth=" + crawlingTime.substring(4, 6) +
                 "&selGoDay=" + crawlingTime.substring(6, 8) +
-                "&txtGoHour=" + crawlingTime.substring(8, 14) +
+                "&txtGoHour=" + minusTime(crawlingTime.substring(8, 10)) + crawlingTime.substring(10, 14) +
                 "&txtPsgFlg_1=1";
         httpPost.setEntity(new StringEntity(payload, StandardCharsets.UTF_8));
         System.out.println(payload);
@@ -125,12 +126,12 @@ public class RealTimeSeatCrawlerV2 {
     }
 
     private boolean isSameTicket(Ticket target, List<String> ticketInfo) {
+        String departInfo = target.getDepartStation().name() + " " + formatTime(target.getDepartTime());
+        String arriveInfo = target.getArriveStation().name() + " " + formatTime(target.getArriveTime());
         if (ticketInfo.size() > 4
                 && !ticketInfo.get(1).startsWith("SRT")
-                && target.getDepartStation().name().contains(ticketInfo.get(2))
-                && target.getArriveStation().name().contains(ticketInfo.get(3))
-                && formatTime(target.getDepartTime()).contains(ticketInfo.get(2))
-                && formatTime(target.getArriveTime()).contains(ticketInfo.get(3))) {
+                && departInfo.equals(ticketInfo.get(2))
+                && arriveInfo.equals(ticketInfo.get(3))) {
             return true;
         }
         return false;
@@ -141,5 +142,10 @@ public class RealTimeSeatCrawlerV2 {
         String hour = timePart.substring(0, 2);
         String minute = timePart.substring(2, 4);
         return hour + ":" + minute;
+    }
+
+    private String minusTime(String time) {
+        String minusTime = String.valueOf(Integer.parseInt(time) - 1);
+        return String.format("%02d", Integer.parseInt(minusTime));
     }
 }
