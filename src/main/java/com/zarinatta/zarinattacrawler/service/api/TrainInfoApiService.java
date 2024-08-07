@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.MainStationCode;
+import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -119,7 +120,9 @@ public class TrainInfoApiService {
                     ticketList.add(Ticket.builder()
                             .ticketType(trainGradeName + " " + trainNo)
                             .departDate(depPlandTime.substring(0, 8))
+                            .departStation(StationCode.valueOf(depPlaceName))
                             .departTime(depPlandTime)
+                            .arriveStation(StationCode.valueOf(arrPlaceName))
                             .arriveTime(arrPlandTime)
                             .price(adultCharge + "원")
                             .build());
