@@ -18,9 +18,6 @@ public class BookMark {
     @Column(name = "bookmark_id")
     private Long id;
 
-    @Column(nullable = false)
-    private boolean isTimeOut;
-
     @Column
     private boolean wantFirstClass;
 
@@ -44,8 +41,7 @@ public class BookMark {
     private User user;
 
     @Builder
-    public BookMark(boolean isTimeOut, boolean wantFirstClass, SeatLookingFor wantNormalSeat, SeatLookingFor wantBabySeat, boolean wantWaitingReservation, Ticket ticket, User user) {
-        this.isTimeOut = isTimeOut;
+    public BookMark(boolean wantFirstClass, SeatLookingFor wantNormalSeat, SeatLookingFor wantBabySeat, boolean wantWaitingReservation, Ticket ticket, User user) {
         this.wantFirstClass = wantFirstClass;
         this.wantNormalSeat = wantNormalSeat;
         this.wantBabySeat = wantBabySeat;

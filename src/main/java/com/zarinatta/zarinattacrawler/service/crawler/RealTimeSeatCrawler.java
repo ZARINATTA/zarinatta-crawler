@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Slf4j
@@ -33,7 +35,8 @@ public class RealTimeSeatCrawler {
 
     public void startCycle() {
         long startTime = System.currentTimeMillis();
-        List<BookMark> bookMarkList = bookMarkRepository.findAllByTimeOutFalseJoinAll(); //todo time out을 기준으로 하기 보다, 현재 시간 기준으로 가쟈오기
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        List<BookMark> bookMarkList = bookMarkRepository.findAllByAfterNowJoinAll(dateTimeFormatter.format(LocalDateTime.now()));
         Map<Ticket, List<BookMark>> ticketBookMarkMap = makeBookMarkUserMap(bookMarkList);
         realtimeSeatCrawler(ticketBookMarkMap);
         long estimatedTime = System.currentTimeMillis() - startTime;
