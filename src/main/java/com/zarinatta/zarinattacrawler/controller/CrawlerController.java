@@ -2,10 +2,7 @@ package com.zarinatta.zarinattacrawler.controller;
 
 
 import com.zarinatta.zarinattacrawler.service.crawler.*;
-import com.zarinatta.zarinattacrawler.service.crawler.legacy.AvailableSeatCrawler;
-import com.zarinatta.zarinattacrawler.service.crawler.legacy.CrawlerServiceV1;
-import com.zarinatta.zarinattacrawler.service.crawler.legacy.JsoupSeatCrawler;
-import com.zarinatta.zarinattacrawler.service.crawler.legacy.RealTimeSeatCrawlerV1;
+import com.zarinatta.zarinattacrawler.service.crawler.legacy.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,12 +19,18 @@ public class CrawlerController {
     private final CrawlerServiceV1 crawlerService;
     private final AvailableSeatCrawler availableSeatCrawler;
     private final RealTimeSeatCrawlerV1 realTimeSeatCrawlerV1;
-    private final JsoupSeatCrawler jsoupSeatCrawler;
+    private final JsoupSeatCrawlerV2 jsoupSeatCrawler;
     private final RealTimeSeatCrawler realTimeSeatCrawler;
 
     @GetMapping("/realTime")
     public String startCrawlingCycle() {
         realTimeSeatCrawler.startCycle();
+        return "ok";
+    }
+
+    @GetMapping("/jsoup")
+    public String testCrawler3() throws IOException {
+        jsoupSeatCrawler.startCycle();
         return "ok";
     }
 
@@ -47,12 +50,6 @@ public class CrawlerController {
     @GetMapping("/realTime2")
     public String testCrawler2() {
         availableSeatCrawler.getTicketList();
-        return "ok";
-    }
-
-    @GetMapping("/realTime3")
-    public String testCrawler3() throws IOException {
-        jsoupSeatCrawler.getTicketList();
         return "ok";
     }
 }

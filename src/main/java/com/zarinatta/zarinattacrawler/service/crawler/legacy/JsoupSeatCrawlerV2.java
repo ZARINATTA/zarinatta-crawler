@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.crawler;
+package com.zarinatta.zarinattacrawler.service.crawler.legacy;
 
 import com.zarinatta.zarinattacrawler.entity.BookMark;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
@@ -6,10 +6,7 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.BookMarkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,15 +24,12 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RealTimeSeatCrawler {
-
-    private final CloseableHttpClient httpClient;
+public class JsoupSeatCrawlerV2 {
     private final BookMarkRepository bookMarkRepository;
-
     public void startCycle() {
         long startTime = System.currentTimeMillis();
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        List<BookMark> bookMarkList = bookMarkRepository.findAllByAfterNowJoinAll(dateTimeFormatter.format(LocalDateTime.now()));
+        List<BookMark> bookMarkList = bookMarkRepository.findAllByAfterNowJoinAll(dateTimeFormatter.format(LocalDateTime.now())); //todo time out을 기준으로 하기 보다, 현재 시간 기준으로 가쟈오기
         Map<Ticket, List<BookMark>> ticketBookMarkMap = makeBookMarkUserMap(bookMarkList);
         realtimeSeatCrawler(ticketBookMarkMap);
         long estimatedTime = System.currentTimeMillis() - startTime;
@@ -60,12 +53,13 @@ public class RealTimeSeatCrawler {
     private void realtimeSeatCrawler(Map<Ticket, List<BookMark>> ticketBookMarkMap) {
         for (Map.Entry<Ticket, List<BookMark>> ticketBookMarkSet : ticketBookMarkMap.entrySet()) {
             Ticket target = ticketBookMarkSet.getKey();
-            HttpPost post = makeHttpPost(target.getDepartStation(), target.getArriveStation(), target.getDepartTime());
-            try (CloseableHttpResponse response = httpClient.execute(post)) { // 데이터 가져 오기
-                byte[] bytes = response.getEntity().getContent().readAllBytes();
-                String responseBody = new String(bytes, StandardCharsets.UTF_8);
-                Document document = Jsoup.parse(responseBody);
-                response.getEntity().getContent().close();
+            try {
+                Connection.Response response = Jsoup.connect("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do")
+                        .headers(makeHttpHeader())
+                        .data(makeHttpPayload(target.getDepartStation(), target.getArriveStation(), target.getDepartTime()))
+                        .method(Connection.Method.POST)
+                        .execute();
+                Document document = Jsoup.parse(new String(response.bodyAsBytes(), StandardCharsets.UTF_8));
                 Elements table = document.select("tr");
                 Iterator<Element> tickets = table.iterator();
                 while (tickets.hasNext()) {
@@ -79,45 +73,57 @@ public class RealTimeSeatCrawler {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            } finally {
-                post.reset();
             }
         }
     }
 
-    private HttpPost makeHttpPost(StationCode depart, StationCode arrive, String targetTime) {
-        HttpPost httpPost = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");
-        httpPost.setHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
-        httpPost.setHeader("accept-encoding", "gzip, deflate, br, zstd");
-        httpPost.setHeader("accept-language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
-        httpPost.setHeader("cache-control", "max-age=0");
-        httpPost.setHeader("connection", "keep-alive");
-        httpPost.setHeader("content-type", "application/x-www-form-urlencoded");
-        httpPost.setHeader("cookie", "WMONID=MXemLXO1KF-; _ga=GA1.1.1244795697.1717413303; pop_202404090001=done; JSESSIONID=gUjGo5vKviaUDFydiLATaZvDvWJOHQaHChLLWZwlEb1hhNawzXprhMYHsaCQ1jiF.kr005_servlet_engine4; _ga_LP2TSNTFG1=GS1.1.1722758826.53.1.1722762620.0.0.0");
-        httpPost.setHeader("host", "www.letskorail.com");
-        httpPost.setHeader("origin", "https://www.letskorail.com");
-        httpPost.setHeader("sec-ch-ua", "\"Not)A;Brand\";v=\"99\", \"Google Chrome\";v=\"127\", \"Chromium\";v=\"127\"");
-        httpPost.setHeader("sec-ch-ua-mobile", "?0");
-        httpPost.setHeader("sec-ch-ua-platform", "\"Windows\"");
-        httpPost.setHeader("sec-fetch-dest", "document");
-        httpPost.setHeader("sec-fetch-mode", "navigate");
-        httpPost.setHeader("sec-fetch-site", "same-origin");
-        httpPost.setHeader("sec-fetch-user", "?1");
-        httpPost.setHeader("upgrade-insecure-requests", "1");
-        httpPost.setHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+    private Map<String, String> makeHttpHeader(){
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/x-www-form-urlencoded");
+        headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
+        headers.put("Connection", "keep-alive");
+        return headers;
+    }
 
-        String payload = "txtGoStartCode=&txtGoEndCode=&radJobId=1&selGoTrain=05&txtSeatAttCd_4=015&txtSeatAttCd_3=000&txtSeatAttCd_2=000&txtPsgFlg_2=0&txtPsgFlg_3=0&txtPsgFlg_4=0&txtPsgFlg_5=0&chkCpn=N&selGoSeat1=015&selGoSeat2=&txtPsgCnt1=1&txtPsgCnt2=0&txtGoPage=1" +
-                "&txtGoAbrdDt=" + targetTime.substring(0, 8) + "&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
-                "&txtGoStart=" + URLEncoder.encode(depart.name(), StandardCharsets.UTF_8) +
-                "&txtGoEnd=" + URLEncoder.encode(arrive.name(), StandardCharsets.UTF_8) +
-                "&selGoYear=" + targetTime.substring(0, 4) +
-                "&selGoMonth=" + targetTime.substring(4, 6) +
-                "&selGoDay=" + targetTime.substring(6, 8) +
-                "&txtGoHour=" + minusTime(targetTime.substring(8, 10)) + targetTime.substring(10, 14) +
-                "&txtPsgFlg_1=1";
-        httpPost.setEntity(new StringEntity(payload, StandardCharsets.UTF_8));
-        System.out.println(payload);
-        return httpPost;
+    private Map<String, String> makeHttpPayload(StationCode depart, StationCode arrive, String targetTime) {
+        Map<String, String> payloadMap = new HashMap<>();
+
+        payloadMap.put("txtGoStartCode", "");
+        payloadMap.put("txtGoEndCode", "");
+        payloadMap.put("radJobId", "1");
+        payloadMap.put("selGoTrain", "05");
+        payloadMap.put("txtSeatAttCd_4", "015");
+        payloadMap.put("txtSeatAttCd_3", "000");
+        payloadMap.put("txtSeatAttCd_2", "000");
+        payloadMap.put("txtPsgFlg_2", "0");
+        payloadMap.put("txtPsgFlg_3", "0");
+        payloadMap.put("txtPsgFlg_4", "0");
+        payloadMap.put("txtPsgFlg_5", "0");
+        payloadMap.put("chkCpn", "N");
+        payloadMap.put("selGoSeat1", "015");
+        payloadMap.put("selGoSeat2", "");
+        payloadMap.put("txtPsgCnt1", "1");
+        payloadMap.put("txtPsgCnt2", "0");
+        payloadMap.put("txtGoPage", "1");
+        payloadMap.put("txtGoAbrdDt", targetTime.substring(0, 8));
+        payloadMap.put("selGoRoom", "");
+        payloadMap.put("useSeatFlg", "");
+        payloadMap.put("useServiceFlg", "");
+        payloadMap.put("checkStnNm", "Y");
+        payloadMap.put("txtMenuId", "11");
+        payloadMap.put("SeandYo", "N");
+        payloadMap.put("txtGoStartCode2", "");
+        payloadMap.put("txtGoEndCode2", "");
+        payloadMap.put("hidEasyTalk", "");
+        payloadMap.put("txtGoStart", depart.name());
+        payloadMap.put("txtGoEnd", arrive.name());
+        payloadMap.put("selGoYear", targetTime.substring(0, 4));
+        payloadMap.put("selGoMonth", targetTime.substring(4, 6));
+        payloadMap.put("selGoDay", targetTime.substring(6, 8));
+        payloadMap.put("txtGoHour", minusTime(targetTime.substring(8, 10)) + targetTime.substring(10, 12) + "00");
+        payloadMap.put("txtPsgFlg_1", "1");
+
+        return payloadMap;
     }
 
     private boolean isSameTicket(Ticket target, List<String> ticketInfo) {
@@ -171,7 +177,7 @@ public class RealTimeSeatCrawler {
             }
             String phoneNumber = bookMark.getUser().getPhoneNumber();
             System.out.println(phoneNumber);
-            System.out.println(firstClass + " " + normalSeat + " " + babySeat + " " + waitSeat);
+            System.out.println(firstClass+" "+normalSeat+" "+babySeat+" "+waitSeat);
         }
     }
 }
