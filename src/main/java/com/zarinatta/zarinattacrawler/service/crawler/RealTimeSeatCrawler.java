@@ -40,7 +40,7 @@ public class RealTimeSeatCrawler {
         System.out.println("총 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
     }
 
-    public Map<Ticket, List<BookMark>> makeBookMarkUserMap(List<BookMark> bookMarkList) {
+    private Map<Ticket, List<BookMark>> makeBookMarkUserMap(List<BookMark> bookMarkList) {
         Map<Ticket, List<BookMark>> ticketBookMarkMap = new HashMap<>();
         for (BookMark bookMark : bookMarkList) {
             if (ticketBookMarkMap.containsKey(bookMark.getTicket())) {
@@ -54,8 +54,7 @@ public class RealTimeSeatCrawler {
         return ticketBookMarkMap;
     }
 
-    @Transactional
-    public void realtimeSeatCrawler(Map<Ticket, List<BookMark>> ticketBookMarkMap) {
+    private void realtimeSeatCrawler(Map<Ticket, List<BookMark>> ticketBookMarkMap) {
         for (Map.Entry<Ticket, List<BookMark>> ticketBookMarkSet : ticketBookMarkMap.entrySet()) {
             Ticket target = ticketBookMarkSet.getKey();
             HttpPost post = makeHttpPost(target.getDepartStation(), target.getArriveStation(), target.getDepartTime());
@@ -83,7 +82,7 @@ public class RealTimeSeatCrawler {
         }
     }
 
-    private HttpPost makeHttpPost(StationCode depart, StationCode arrive, String crawlingTime) {
+    private HttpPost makeHttpPost(StationCode depart, StationCode arrive, String targetTime) {
         HttpPost httpPost = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");
         httpPost.setHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
         httpPost.setHeader("accept-encoding", "gzip, deflate, br, zstd");
@@ -105,13 +104,13 @@ public class RealTimeSeatCrawler {
         httpPost.setHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
         String payload = "txtGoStartCode=&txtGoEndCode=&radJobId=1&selGoTrain=05&txtSeatAttCd_4=015&txtSeatAttCd_3=000&txtSeatAttCd_2=000&txtPsgFlg_2=0&txtPsgFlg_3=0&txtPsgFlg_4=0&txtPsgFlg_5=0&chkCpn=N&selGoSeat1=015&selGoSeat2=&txtPsgCnt1=1&txtPsgCnt2=0&txtGoPage=1" +
-                "&txtGoAbrdDt=" + crawlingTime.substring(0, 8) + "&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
+                "&txtGoAbrdDt=" + targetTime.substring(0, 8) + "&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
                 "&txtGoStart=" + URLEncoder.encode(depart.name(), StandardCharsets.UTF_8) +
                 "&txtGoEnd=" + URLEncoder.encode(arrive.name(), StandardCharsets.UTF_8) +
-                "&selGoYear=" + crawlingTime.substring(0, 4) +
-                "&selGoMonth=" + crawlingTime.substring(4, 6) +
-                "&selGoDay=" + crawlingTime.substring(6, 8) +
-                "&txtGoHour=" + minusTime(crawlingTime.substring(8, 10)) + crawlingTime.substring(10, 14) +
+                "&selGoYear=" + targetTime.substring(0, 4) +
+                "&selGoMonth=" + targetTime.substring(4, 6) +
+                "&selGoDay=" + targetTime.substring(6, 8) +
+                "&txtGoHour=" + minusTime(targetTime.substring(8, 10)) + targetTime.substring(10, 14) +
                 "&txtPsgFlg_1=1";
         httpPost.setEntity(new StringEntity(payload, StandardCharsets.UTF_8));
         System.out.println(payload);
