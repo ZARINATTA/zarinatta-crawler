@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.legacy;
+package com.zarinatta.zarinattacrawler.service.api.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.zarinatta.zarinattacrawler.controller;
 
-import com.zarinatta.zarinattacrawler.service.api.TrainInfoApiServiceV2;
-import com.zarinatta.zarinattacrawler.service.api.TrainInfoApiTest;
+import com.zarinatta.zarinattacrawler.service.api.TrainInfoApiService;
+import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiTest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +16,7 @@ import java.io.IOException;
 @RequestMapping(value = "/api/v1/external")
 public class ExternalApiController {
 
-    private final TrainInfoApiServiceV2 trainInfoApiService;
+    private final TrainInfoApiService trainInfoApiService;
     private final TrainInfoApiTest trainInfoApiTest;
 
     @GetMapping("/trainInfo")
