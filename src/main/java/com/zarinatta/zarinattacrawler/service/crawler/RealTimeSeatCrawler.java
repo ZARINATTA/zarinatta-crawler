@@ -4,6 +4,7 @@ import com.zarinatta.zarinattacrawler.entity.BookMark;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.BookMarkRepository;
+import com.zarinatta.zarinattacrawler.sns.SnsManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
@@ -32,6 +33,7 @@ public class RealTimeSeatCrawler {
 
     private final CloseableHttpClient httpClient;
     private final BookMarkRepository bookMarkRepository;
+    private final SnsManager snsManager;
 
     public void startCycle() {
         long startTime = System.currentTimeMillis();
