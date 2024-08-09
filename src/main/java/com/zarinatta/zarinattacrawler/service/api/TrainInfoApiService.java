@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
-import com.zarinatta.zarinattacrawler.enums.MainStationCode;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,9 +40,8 @@ public class TrainInfoApiService {
     @Transactional
     public void getTrainInfo() {
         List<Future<Void>> futures = new ArrayList<>();
-
-        for (MainStationCode depPlaceId : MainStationCode.values()) {
-            for (MainStationCode arrPlaceId : MainStationCode.values()) {
+        for (StationCode depPlaceId : StationCode.values()) {
+            for (StationCode arrPlaceId : StationCode.values()) {
                 Future<Void> future = executorService.submit(() -> {
                     try {
                         // URL 생성
@@ -80,11 +78,12 @@ public class TrainInfoApiService {
                         conn.disconnect();
                         convertToJsonAndSave(sb);
                     } catch (IOException e) {
+                        log.error("API 호출 중 에러 발생 depart: {}  arrive: {}", depPlaceId, arrPlaceId);
+                        log.error("API 호출 중 발생 오류", e);
                         throw new RuntimeException(e);
                     }
                     return null;
                 });
-
                 futures.add(future);
             }
         }
@@ -94,10 +93,9 @@ public class TrainInfoApiService {
             try {
                 future.get();
             } catch (InterruptedException | ExecutionException e) {
-                log.error("Error occurred while processing future", e);
+                log.error("Future 처리 중 오류 발생", e);
             }
         }
-
         executorService.shutdown();
     }
 
@@ -129,6 +127,7 @@ public class TrainInfoApiService {
                 }
             }
         } catch (JsonProcessingException e) {
+            log.error("JSON 파싱 중 에러 발생", e);
             throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);
