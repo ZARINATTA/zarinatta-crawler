@@ -190,9 +190,7 @@ public class RealTimeSeatCrawler {
             message.append("이 생겼습니다!");
             if (ticketExist) {
                 String phoneNumber = user.getUserPhoneNumber();
-                snsManager.sendSns(String.valueOf(message), phoneNumber);
-                bookMark.messageIsSent();
-                bookMarkRepository.flush();
+                snsManager.sendSnsForBookMark(String.valueOf(message), phoneNumber, bookMark);
             }
             log.info(firstClass + " " + normalSeat + " " + babySeat + " " + waitSeat);
         }
