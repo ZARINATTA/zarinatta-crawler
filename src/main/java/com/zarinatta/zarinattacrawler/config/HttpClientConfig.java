@@ -69,6 +69,30 @@ public class HttpClientConfig {
     }
 
     @Bean
+    public HttpPost httpPost() {
+        HttpPost httpPost = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");
+        httpPost.setHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+        httpPost.setHeader("accept-encoding", "gzip, deflate, br, zstd");
+        httpPost.setHeader("accept-language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
+        httpPost.setHeader("cache-control", "max-age=0");
+        httpPost.setHeader("connection", "keep-alive");
+        httpPost.setHeader("content-type", "application/x-www-form-urlencoded");
+        httpPost.setHeader("cookie", "WMONID=MXemLXO1KF-; _ga=GA1.1.1244795697.1717413303; pop_202404090001=done; JSESSIONID=gUjGo5vKviaUDFydiLATaZvDvWJOHQaHChLLWZwlEb1hhNawzXprhMYHsaCQ1jiF.kr005_servlet_engine4; _ga_LP2TSNTFG1=GS1.1.1722758826.53.1.1722762620.0.0.0");
+        httpPost.setHeader("host", "www.letskorail.com");
+        httpPost.setHeader("origin", "https://www.letskorail.com");
+        httpPost.setHeader("sec-ch-ua", "\"Not)A;Brand\";v=\"99\", \"Google Chrome\";v=\"127\", \"Chromium\";v=\"127\"");
+        httpPost.setHeader("sec-ch-ua-mobile", "?0");
+        httpPost.setHeader("sec-ch-ua-platform", "\"Windows\"");
+        httpPost.setHeader("sec-fetch-dest", "document");
+        httpPost.setHeader("sec-fetch-mode", "navigate");
+        httpPost.setHeader("sec-fetch-site", "same-origin");
+        httpPost.setHeader("sec-fetch-user", "?1");
+        httpPost.setHeader("upgrade-insecure-requests", "1");
+        httpPost.setHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
+        return httpPost;
+    }
+
+    @Bean
     public List<HttpPost> httpPostRequests(CloseableHttpClient httpClient) {
         List<HttpPost> requests = new ArrayList<>();
         for(int i = 0; i< 200; i++){
