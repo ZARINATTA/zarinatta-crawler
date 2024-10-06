@@ -19,6 +19,9 @@ public class BookMark {
     private Long id;
 
     @Column
+    private boolean isSent;
+
+    @Column
     private boolean wantFirstClass;
 
     @Column
@@ -37,16 +40,21 @@ public class BookMark {
     private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "USER_ID")
     private User user;
 
     @Builder
-    public BookMark(boolean wantFirstClass, SeatLookingFor wantNormalSeat, SeatLookingFor wantBabySeat, boolean wantWaitingReservation, Ticket ticket, User user) {
+    public BookMark(boolean isSent, boolean wantFirstClass, SeatLookingFor wantNormalSeat, SeatLookingFor wantBabySeat, boolean wantWaitingReservation, Ticket ticket, User user) {
+        this.isSent = isSent;
         this.wantFirstClass = wantFirstClass;
         this.wantNormalSeat = wantNormalSeat;
         this.wantBabySeat = wantBabySeat;
         this.wantWaitingReservation = wantWaitingReservation;
         this.ticket = ticket;
         this.user = user;
+    }
+
+    public void messageIsSent() {
+        this.isSent = true;
     }
 }

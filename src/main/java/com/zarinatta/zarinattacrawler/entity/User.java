@@ -1,5 +1,6 @@
 package com.zarinatta.zarinattacrawler.entity;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -11,10 +12,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Long id;
+    @Column(name = "USER_ID")
+    private String id;
 
-    @Column
-    private String phoneNumber;
+    @Column(name = "USER_EMAIL")
+    private String userEmail;
+
+    @Column(name = "USER_NICK")
+    private String userNick;
+
+    @Column(name = "USER_PHONE")
+    @Nullable
+    private String userPhoneNumber;
+
+    @Column(name = "USER_DEVICE_TOKEN")
+    @Nullable
+    private String userDeviceToken;
 }

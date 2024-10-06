@@ -194,7 +194,7 @@ public class RealTimeSeatCrawlerV2 {
             if (bookMark.getWantBabySeat().name().equals("STANDING_SEAT") && (babySeat.equals("유아동반객실") || babySeat.equals("입좌석묶음예약"))) {
                 System.out.println("6");
             }
-            String phoneNumber = bookMark.getUser().getPhoneNumber();
+            String phoneNumber = "01058953445";
             System.out.println(phoneNumber);
             System.out.println(firstClass+" "+normalSeat+" "+babySeat+" "+waitSeat);
         }

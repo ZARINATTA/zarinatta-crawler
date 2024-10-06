@@ -12,4 +12,8 @@ import java.util.List;
 public interface BookMarkRepository extends JpaRepository<BookMark, Long> {
     @Query("select b from BookMark b join fetch b.ticket join fetch b.user where b.ticket.departTime > :now")
     List<BookMark> findAllByAfterNowJoinAll(@Param("now") String now);
+
+    @Query("select b from BookMark b join fetch b.ticket join fetch b.user " +
+            "where ((b.ticket.departDate = :date and b.ticket.departTime > :time) or b.ticket.departDate > :date) and b.isSent = false")
+    List<BookMark> findAllByAfterNow(@Param("date") String date, @Param("time") String time);
 }

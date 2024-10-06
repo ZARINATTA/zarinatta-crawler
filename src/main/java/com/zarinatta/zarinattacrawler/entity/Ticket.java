@@ -42,7 +42,6 @@ public class Ticket {
     @Column(nullable = false)
     private String price;
 
-
     @Builder
     public Ticket(String ticketType, String departDate, String departTime, StationCode departStation, String arriveTime, StationCode arriveStation, String price) {
         this.ticketType = ticketType;

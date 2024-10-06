@@ -2,6 +2,9 @@ package com.zarinatta.zarinattacrawler.service.crawler;
 
 import com.zarinatta.zarinattacrawler.entity.BookMark;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
+import com.zarinatta.zarinattacrawler.entity.User;
+import com.zarinatta.zarinattacrawler.enums.SeatLookingFor;
+import com.zarinatta.zarinattacrawler.enums.SeatState;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.BookMarkRepository;
 import com.zarinatta.zarinattacrawler.sns.SnsManager;
@@ -37,8 +40,9 @@ public class RealTimeSeatCrawler {
 
     public void startCycle() {
         long startTime = System.currentTimeMillis();
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        List<BookMark> bookMarkList = bookMarkRepository.findAllByAfterNowJoinAll(dateTimeFormatter.format(LocalDateTime.now()));
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
+        List<BookMark> bookMarkList = bookMarkRepository.findAllByAfterNow(dateFormatter.format(LocalDateTime.now()), timeFormatter.format(LocalDateTime.now()));
         Map<Ticket, List<BookMark>> ticketBookMarkMap = makeBookMarkUserMap(bookMarkList);
         realtimeSeatCrawler(ticketBookMarkMap);
         long estimatedTime = System.currentTimeMillis() - startTime;
@@ -62,7 +66,7 @@ public class RealTimeSeatCrawler {
     private void realtimeSeatCrawler(Map<Ticket, List<BookMark>> ticketBookMarkMap) {
         for (Map.Entry<Ticket, List<BookMark>> ticketBookMarkSet : ticketBookMarkMap.entrySet()) {
             Ticket target = ticketBookMarkSet.getKey();
-            HttpPost post = makeHttpPost(target.getDepartStation(), target.getArriveStation(), target.getDepartTime());
+            HttpPost post = makeHttpPost(target.getDepartStation(), target.getArriveStation(), target.getDepartDate(), target.getDepartTime());
             try (CloseableHttpResponse response = httpClient.execute(post)) { // 데이터 가져 오기
                 byte[] bytes = response.getEntity().getContent().readAllBytes();
                 String responseBody = new String(bytes, StandardCharsets.UTF_8);
@@ -87,7 +91,7 @@ public class RealTimeSeatCrawler {
         }
     }
 
-    private HttpPost makeHttpPost(StationCode depart, StationCode arrive, String targetTime) {
+    private HttpPost makeHttpPost(StationCode depart, StationCode arrive, String targetDate, String targetTime) {
         HttpPost httpPost = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");
         httpPost.setHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
         httpPost.setHeader("accept-encoding", "gzip, deflate, br, zstd");
@@ -109,13 +113,13 @@ public class RealTimeSeatCrawler {
         httpPost.setHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36");
 
         String payload = "txtGoStartCode=&txtGoEndCode=&radJobId=1&selGoTrain=05&txtSeatAttCd_4=015&txtSeatAttCd_3=000&txtSeatAttCd_2=000&txtPsgFlg_2=0&txtPsgFlg_3=0&txtPsgFlg_4=0&txtPsgFlg_5=0&chkCpn=N&selGoSeat1=015&selGoSeat2=&txtPsgCnt1=1&txtPsgCnt2=0&txtGoPage=1" +
-                "&txtGoAbrdDt=" + targetTime.substring(0, 8) + "&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
+                "&txtGoAbrdDt=" + targetDate + "&selGoRoom=&useSeatFlg=&useServiceFlg=&checkStnNm=Y&txtMenuId=11&SeandYo=N&txtGoStartCode2=&txtGoEndCode2=&hidEasyTalk=" +
                 "&txtGoStart=" + URLEncoder.encode(depart.name(), StandardCharsets.UTF_8) +
                 "&txtGoEnd=" + URLEncoder.encode(arrive.name(), StandardCharsets.UTF_8) +
-                "&selGoYear=" + targetTime.substring(0, 4) +
-                "&selGoMonth=" + targetTime.substring(4, 6) +
-                "&selGoDay=" + targetTime.substring(6, 8) +
-                "&txtGoHour=" + minusTime(targetTime.substring(8, 10)) + targetTime.substring(10, 14) +
+                "&selGoYear=" + targetDate.substring(0, 4) +
+                "&selGoMonth=" + targetDate.substring(4, 6) +
+                "&selGoDay=" + targetDate.substring(6, 8) +
+                "&txtGoHour=" + minusTime(targetTime.substring(0, 2)) + targetTime.substring(2, 4) + "00" +
                 "&txtPsgFlg_1=1";
         httpPost.setEntity(new StringEntity(payload, StandardCharsets.UTF_8));
         System.out.println(payload);
@@ -134,10 +138,9 @@ public class RealTimeSeatCrawler {
         return false;
     }
 
-    private String formatTime(String dateTime) {
-        String timePart = dateTime.substring(8, 12);
-        String hour = timePart.substring(0, 2);
-        String minute = timePart.substring(2, 4);
+    private String formatTime(String time) {
+        String hour = time.substring(0, 2);
+        String minute = time.substring(2, 4);
         return hour + ":" + minute;
     }
 
@@ -146,34 +149,52 @@ public class RealTimeSeatCrawler {
         return String.format("%02d", Integer.parseInt(minusTime));
     }
 
-    private void sendSMS(List<BookMark> bookMarks, Element ticket) {
+    @Transactional
+    public void sendSMS(List<BookMark> bookMarks, Element ticket) {
         String waitSeat = ticket.select("td:nth-of-type(10) img").attr("alt");
         String firstClass = ticket.select("td:nth-of-type(5) img").attr("alt");
         String normalSeat = ticket.select("td:nth-of-type(6) img").attr("alt");
         String babySeat = ticket.select("td:nth-of-type(7) img").attr("alt");
 
         for (BookMark bookMark : bookMarks) {
-            if (bookMark.isWantWaitingReservation() && waitSeat.equals("신청하기")) {
-                System.out.println("1");
+            User user = bookMark.getUser();
+            Ticket myTicket = bookMark.getTicket();
+            boolean ticketExist = false;
+            StringBuilder message = new StringBuilder();
+            message.append(user.getUserNick() + " 고객님께서 즐겨찾기 하신 ");
+            message.append(myTicket.getDepartTime() + " 에 출발하는 " + myTicket.getTicketType() + " 열차의 ");
+            if (bookMark.isWantWaitingReservation() && waitSeat.equals(SeatState.신청하기.name())) {
+                message.append("예약 대기 / ");
+                ticketExist = true;
             }
-            if (bookMark.isWantFirstClass() && firstClass.equals("예약하기")) {
-                System.out.println("2");
+            if (bookMark.isWantFirstClass() && firstClass.equals(SeatState.예약하기.name())) {
+                message.append("특실 / ");
+                ticketExist = true;
             }
-            if (bookMark.getWantNormalSeat().name().equals("SEAT") && normalSeat.equals("예약하기")) {
-                System.out.println("3");
+            if (bookMark.getWantNormalSeat().equals(SeatLookingFor.SEAT) && normalSeat.equals(SeatState.예약하기.name())) {
+                message.append("일반실 좌석 / ");
+                ticketExist = true;
             }
-            if (bookMark.getWantNormalSeat().name().equals("STANDING_SEAT") && (normalSeat.equals("예약하기") || normalSeat.equals("입좌석묶음예약"))) {
-                System.out.println("4");
+            if (bookMark.getWantNormalSeat().equals(SeatLookingFor.STANDING_SEAT) && (normalSeat.equals(SeatState.예약하기.name()) || normalSeat.equals(SeatState.입좌석묶음예약.name()))) {
+                message.append("일반실 입좌석 / ");
+                ticketExist = true;
             }
-            if (bookMark.getWantBabySeat().name().equals("SEAT") && babySeat.equals("유아동반객실")) {
-                System.out.println("5");
+            if (bookMark.getWantBabySeat().equals(SeatLookingFor.SEAT) && babySeat.equals(SeatState.유아동반객실.name())) {
+                message.append("유아실 좌석 / ");
+                ticketExist = true;
             }
-            if (bookMark.getWantBabySeat().name().equals("STANDING_SEAT") && (babySeat.equals("유아동반객실") || babySeat.equals("입좌석묶음예약"))) {
-                System.out.println("6");
+            if (bookMark.getWantBabySeat().equals(SeatLookingFor.STANDING_SEAT) && (babySeat.equals(SeatState.유아동반객실.name()) || babySeat.equals(SeatState.입좌석묶음예약.name()))) {
+                message.append("유아실 입좌석 / ");
+                ticketExist = true;
             }
-            String phoneNumber = bookMark.getUser().getPhoneNumber();
-            System.out.println(phoneNumber);
-            System.out.println(firstClass + " " + normalSeat + " " + babySeat + " " + waitSeat);
+            message.append("이 생겼습니다!");
+            if (ticketExist) {
+                String phoneNumber = user.getUserPhoneNumber();
+                snsManager.sendSns(String.valueOf(message), phoneNumber);
+                bookMark.messageIsSent();
+                bookMarkRepository.flush();
+            }
+            log.info(firstClass + " " + normalSeat + " " + babySeat + " " + waitSeat);
         }
     }
 }

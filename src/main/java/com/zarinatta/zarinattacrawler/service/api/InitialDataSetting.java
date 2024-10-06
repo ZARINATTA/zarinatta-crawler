@@ -40,15 +40,19 @@ public class InitialDataSetting implements CommandLineRunner {
     private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         log.info("초기 데이터 세팅 시작");
+        log.info("start");
+        long startTime = System.currentTimeMillis();
         //initialDataSet();
+        long endTime = System.currentTimeMillis();
+        log.info("실행 시간: {} ms", endTime - startTime);
     }
 
     @Transactional
     public void initialDataSet() {
         List<Future<Void>> futures = new ArrayList<>();
-        for (LocalDate date = LocalDate.now(); LocalDate.now().plusDays(7).isAfter(date); date = date.plusDays(1)) {
+        for (LocalDate date = LocalDate.now().plusDays(6); LocalDate.now().plusDays(7).isAfter(date); date = date.plusDays(1)) {
             for (StationCode depPlaceId : StationCode.values()) {
                 for (StationCode arrPlaceId : StationCode.values()) {
                     LocalDate requestDate = date;
@@ -126,9 +130,9 @@ public class InitialDataSetting implements CommandLineRunner {
                             .ticketType(trainGradeName + " " + trainNo)
                             .departDate(depPlandTime.substring(0, 8))
                             .departStation(StationCode.valueOf(depPlaceName))
-                            .departTime(depPlandTime)
+                            .departTime(depPlandTime.substring(8, 12))
                             .arriveStation(StationCode.valueOf(arrPlaceName))
-                            .arriveTime(arrPlandTime)
+                            .arriveTime(arrPlandTime.substring(8, 12))
                             .price(adultCharge + "원")
                             .build());
                 }
@@ -138,6 +142,4 @@ public class InitialDataSetting implements CommandLineRunner {
         }
         ticketRepository.saveAll(ticketList);
     }
-
-
 }
