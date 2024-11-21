@@ -1,5 +1,6 @@
 package com.zarinatta.zarinattacrawler.entity;
 
+import com.zarinatta.zarinattacrawler.enums.BookMarkStatus;
 import com.zarinatta.zarinattacrawler.enums.SeatLookingFor;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -15,37 +16,42 @@ public class BookMark {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "bookmark_id")
+    @Column(name = "BOOKMARK_ID")
     private Long id;
 
-    @Column
+    @Column(name = "IS_SENT", columnDefinition = "BOOLEAN DEFAULT FALSE", nullable = false)
     private boolean isSent;
 
-    @Column
+    @Column(name = "STATUS", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private BookMarkStatus status;
+
+    @Column(name = "WANT_FIRST_CLASS", nullable = false)
     private boolean wantFirstClass;
 
-    @Column
+    @Column(name = "WANT_NORMAL_SEAT", nullable = false)
     @Enumerated(EnumType.STRING)
     private SeatLookingFor wantNormalSeat;
 
-    @Column
+    @Column(name = "WANT_BABY_SEAT", nullable = false)
     @Enumerated(EnumType.STRING)
     private SeatLookingFor wantBabySeat;
 
-    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE", nullable = false)
+    @Column(name = "WANT_WAITING_RESERVATION", columnDefinition = "BOOLEAN DEFAULT FALSE", nullable = false)
     private boolean wantWaitingReservation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id")
+    @JoinColumn(name = "TICKET_ID", nullable = false)
     private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USER_ID")
+    @JoinColumn(name = "USER_ID", nullable = false)
     private User user;
 
     @Builder
-    public BookMark(boolean isSent, boolean wantFirstClass, SeatLookingFor wantNormalSeat, SeatLookingFor wantBabySeat, boolean wantWaitingReservation, Ticket ticket, User user) {
+    public BookMark(boolean isSent, BookMarkStatus status, boolean wantFirstClass, SeatLookingFor wantNormalSeat, SeatLookingFor wantBabySeat, boolean wantWaitingReservation, Ticket ticket, User user) {
         this.isSent = isSent;
+        this.status = status;
         this.wantFirstClass = wantFirstClass;
         this.wantNormalSeat = wantNormalSeat;
         this.wantBabySeat = wantBabySeat;

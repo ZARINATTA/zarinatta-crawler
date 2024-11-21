@@ -12,34 +12,35 @@ import lombok.NoArgsConstructor;
 @Table
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Ticket {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ticket_id")
+    @Column(name = "TICKET_ID")
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "TICKET_TYPE", nullable = false)
     private String ticketType;
 
     // 출발
-    @Column(nullable = false)
+    @Column(name = "DEPART_DATE", nullable = false)
     private String departDate;
 
-    @Column(nullable = false)
+    @Column(name = "DEPART_TIME", nullable = false)
     private String departTime;
 
-    @Column(nullable = false)
+    @Column(name = "DEPART_STATION", nullable = false)
     @Enumerated(EnumType.STRING)
     private StationCode departStation;
 
     // 도착
-    @Column(nullable = false)
+    @Column(name = "ARRIVE_TIME", nullable = false)
     private String arriveTime;
 
-    @Column(nullable = false)
+    @Column(name = "ARRIVE_STATION", nullable = false)
     @Enumerated(EnumType.STRING)
     private StationCode arriveStation;
 
-    @Column(nullable = false)
+    @Column(name = "PRICE", nullable = false)
     private String price;
 
     @Builder
