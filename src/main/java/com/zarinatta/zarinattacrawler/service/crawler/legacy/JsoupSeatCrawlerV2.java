@@ -25,7 +25,9 @@ import java.util.*;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class JsoupSeatCrawlerV2 {
+
     private final BookMarkRepository bookMarkRepository;
+
     public void startCycle() {
         long startTime = System.currentTimeMillis();
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -175,7 +177,7 @@ public class JsoupSeatCrawlerV2 {
             if (bookMark.getWantBabySeat().name().equals("STANDING_SEAT") && (babySeat.equals("유아동반객실") || babySeat.equals("입좌석묶음예약"))) {
                 System.out.println("6");
             }
-            String phoneNumber = bookMark.getUser().getPhoneNumber();
+            String phoneNumber = "bookMark.getUser().getPhoneNumber()";
             System.out.println(phoneNumber);
             System.out.println(firstClass+" "+normalSeat+" "+babySeat+" "+waitSeat);
         }

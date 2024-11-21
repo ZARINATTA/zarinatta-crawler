@@ -7,9 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,12 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -39,7 +31,7 @@ public class CrawlerServiceV2 {
      * 매일 새벽 4시에 코레일 홈페이지를 크롤링
      */
     @Transactional
-    public void crawlerData_OnceADay(){
+    public void crawlerData_OnceADay() {
         long startTime = System.currentTimeMillis();
         for (int index = 0; index < 1764; index++) {
             HttpPost post = httpPostRequests.get(index);

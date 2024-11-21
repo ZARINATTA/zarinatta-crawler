@@ -1,7 +1,6 @@
 package com.zarinatta.zarinattacrawler.service.crawler.legacy;
 
 import com.zarinatta.zarinattacrawler.entity.Ticket;
-import com.zarinatta.zarinattacrawler.enums.MainStation;
 import com.zarinatta.zarinattacrawler.enums.MainStationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,14 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
