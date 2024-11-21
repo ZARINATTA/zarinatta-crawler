@@ -23,13 +23,12 @@ public class Station {
     private String name;
 
     @Column(name = "STATION_COUNT", columnDefinition = "BIGINT DEFAULT 0")
-    @Builder.Default
     private long count = 0;
 
     @Builder
-    public Station(StationSection section, String name, long count) {
+    public Station(StationSection section, String name) {
         this.section = section;
         this.name = name;
-        this.count = count;
+        this.count = 0;
     }
 }
