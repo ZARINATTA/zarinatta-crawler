@@ -30,6 +30,7 @@ dependencies {
     implementation 'org.jsoup:jsoup:1.18.1'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
     implementation 'software.amazon.awssdk:sns:2.26.23'
+    implementation 'org.flywaydb:flyway-mysql'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
