@@ -8,6 +8,7 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,40 +22,39 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class TrainInfoApiService {
+public class TrainScheduleService {
 
     private final TicketRepositoryCustom ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
-    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
 
-    @Transactional
-    public void getTrainInfo() {
-        List<Future<Void>> futures = new ArrayList<>();
-        for (StationCode depPlaceId : StationCode.values()) {
-            for (StationCode arrPlaceId : StationCode.values()) {
-                Future<Void> future = executorService.submit(() -> {
+    @Scheduled(cron = "0 0 0 * * *")
+    public void getTrainSchedule() {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
+        executor.prestartAllCoreThreads();
+        LocalDate weekAfter = LocalDate.now().plusDays(6);
+        for (StationCode departureId : StationCode.values()) {
+            for (StationCode arriveId : StationCode.values()) {
+                executorService.submit(() -> {
                     try {
+                        long startTime = System.currentTimeMillis();
                         // URL 생성
-                        LocalDate today = LocalDate.now().plusDays(3);
                         DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
                         StringBuilder urlBuilder = new StringBuilder(requestUrl);
                         urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
                         urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", "UTF-8"));
                         urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", "UTF-8"));
                         urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(depPlaceId.getCode(), "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arrPlaceId.getCode(), "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(today.format(total), "UTF-8"));
+                        urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), "UTF-8"));
+                        urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), "UTF-8"));
+                        urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(weekAfter.format(total), "UTF-8"));
                         URL url = new URL(urlBuilder.toString());
 
                         // API 호출
@@ -64,7 +64,8 @@ public class TrainInfoApiService {
 
                         // 호출 결과 파싱
                         BufferedReader rd;
-                        if (conn.getResponseCode() >= 200 && conn.getResponseCode() <= 300) {
+                        int responseCode = conn.getResponseCode();
+                        if (responseCode >= 200 && responseCode <= 300) {
                             rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         } else {
                             rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
@@ -77,29 +78,19 @@ public class TrainInfoApiService {
                         rd.close();
                         conn.disconnect();
                         convertToJsonAndSave(sb);
+                        long endTime = System.currentTimeMillis();
+                        log.info("총 실행 시간: {} ms", endTime - startTime);
                     } catch (IOException e) {
-                        log.error("API 호출 중 에러 발생 depart: {}  arrive: {}", depPlaceId, arrPlaceId);
-                        log.error("API 호출 중 발생 오류", e);
+                        log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
+                        log.error("API 호출 중 원본 예외", e);
                         throw new RuntimeException(e);
                     }
-                    return null;
                 });
-                futures.add(future);
-            }
-        }
-
-        // 모든 작업이 완료될 때까지 대기
-        for (Future<Void> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                log.error("Future 처리 중 오류 발생", e);
             }
         }
         executorService.shutdown();
     }
 
-    @Transactional
     public void convertToJsonAndSave(StringBuilder sb) {
         ObjectMapper mapper = new ObjectMapper();
         List<Ticket> ticketList = new ArrayList<>();
