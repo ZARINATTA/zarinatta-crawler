@@ -35,7 +35,7 @@ public class TrainScheduleService {
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 02 * * *")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
