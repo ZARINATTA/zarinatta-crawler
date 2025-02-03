@@ -15,14 +15,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Service
@@ -35,6 +39,10 @@ public class TrainScheduleService {
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
 
+    private final String ENCODE = "UTF-8";
+    private final int OK = 200;
+    private final int REDIRECT = 300;
+
     @Scheduled(cron = "0 0 02 * * *")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
@@ -44,42 +52,12 @@ public class TrainScheduleService {
             for (StationCode arriveId : StationCode.values()) {
                 executorService.submit(() -> {
                     try {
-                        long startTime = System.currentTimeMillis();
                         // URL 생성
-                        DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
-                        StringBuilder urlBuilder = new StringBuilder(requestUrl);
-                        urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
-                        urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), "UTF-8"));
-                        urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(weekAfter.format(total), "UTF-8"));
-                        URL url = new URL(urlBuilder.toString());
-
+                        URL url = buildUrl(departureId, arriveId, weekAfter);
                         // API 호출
-                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                        conn.setRequestMethod("GET");
-                        conn.setRequestProperty("Content-type", "application/json");
-
-                        // 호출 결과 파싱
-                        BufferedReader rd;
-                        int responseCode = conn.getResponseCode();
-                        if (responseCode >= 200 && responseCode <= 300) {
-                            rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                        } else {
-                            rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-                        }
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = rd.readLine()) != null) {
-                            sb.append(line);
-                        }
-                        rd.close();
-                        conn.disconnect();
+                        StringBuilder sb = callApi(url);
+                        // JSON 파싱 및 저장
                         convertToJsonAndSave(sb);
-                        long endTime = System.currentTimeMillis();
-                        log.info("총 실행 시간: {} ms", endTime - startTime);
                     } catch (IOException e) {
                         log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
                         log.error("API 호출 중 원본 예외", e);
@@ -89,6 +67,42 @@ public class TrainScheduleService {
             }
         }
         executorService.shutdown();
+    }
+
+    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate weekAfter) throws UnsupportedEncodingException, MalformedURLException {
+        DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
+        StringBuilder urlBuilder = new StringBuilder(requestUrl);
+        urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
+        urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(weekAfter.format(total), ENCODE));
+        URL url = new URL(urlBuilder.toString());
+        return url;
+    }
+
+    private StringBuilder callApi(URL url) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Content-type", "application/json");
+        // 호출 결과 파싱
+        BufferedReader rd;
+        int responseCode = conn.getResponseCode();
+        if (responseCode >= OK && responseCode <= REDIRECT) {
+            rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        } else {
+            rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+        }
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = rd.readLine()) != null) {
+            sb.append(line);
+        }
+        rd.close();
+        conn.disconnect();
+        return sb;
     }
 
     public void convertToJsonAndSave(StringBuilder sb) {
