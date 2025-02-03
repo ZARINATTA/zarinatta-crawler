@@ -12,10 +12,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
@@ -32,10 +31,12 @@ import java.util.concurrent.Executors;
 @Transactional(readOnly = true)
 public class InitialDataSetting implements CommandLineRunner {
 
+    private final ApiService apiService;
     private final TicketRepositoryCustom ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
+    private final String ENCODE = "UTF-8";
 
     @Override
     public void run(String... args) {
@@ -54,37 +55,10 @@ public class InitialDataSetting implements CommandLineRunner {
                     executorService.submit(() -> {
                         try {
                             // URL 생성
-                            DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
-                            StringBuilder urlBuilder = new StringBuilder(requestUrl);
-                            urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
-                            urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", "UTF-8"));
-                            urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", "UTF-8"));
-                            urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", "UTF-8"));
-                            urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), "UTF-8"));
-                            urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), "UTF-8"));
-                            urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(requestDate.format(total), "UTF-8"));
-                            URL url = new URL(urlBuilder.toString());
-
+                            URL url = buildUrl(departureId, arriveId, requestDate);
                             // API 호출
-                            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                            conn.setRequestMethod("GET");
-                            conn.setRequestProperty("Content-type", "application/json");
-
-                            // 호출 결과 파싱
-                            BufferedReader rd;
-                            int responseCode = conn.getResponseCode();
-                            if (responseCode >= 200 && responseCode <= 300) {
-                                rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                            } else {
-                                rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-                            }
-                            StringBuilder sb = new StringBuilder();
-                            String line;
-                            while ((line = rd.readLine()) != null) {
-                                sb.append(line);
-                            }
-                            rd.close();
-                            conn.disconnect();
+                            StringBuilder sb = apiService.callTrainApi(url);
+                            // JSON 파싱 및 저장
                             convertToJsonAndSave(sb);
                         } catch (IOException e) {
                             log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
@@ -96,6 +70,20 @@ public class InitialDataSetting implements CommandLineRunner {
             }
         }
         executorService.shutdown();
+    }
+
+    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate requestDate) throws UnsupportedEncodingException, MalformedURLException {
+        DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
+        StringBuilder urlBuilder = new StringBuilder(requestUrl);
+        urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
+        urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), ENCODE));
+        urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(requestDate.format(total), ENCODE));
+        URL url = new URL(urlBuilder.toString());
+        return url;
     }
 
     public void convertToJsonAndSave(StringBuilder sb) {
