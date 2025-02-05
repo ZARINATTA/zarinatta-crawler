@@ -23,9 +23,9 @@ public class ApiService {
     private final int OK = 200;
     private final int REDIRECT = 300;
 
-    private final int TIMEOUT_VALUE = 1;
+    private final int TIMEOUT_VALUE = 5000;
     private final int RETRY_COUNT = 3;
-    private final int DELAY_TIME = 5000;
+    private final int DELAY_TIME = 2000;
 
     @Retryable(retryFor = {SocketTimeoutException.class},
             maxAttempts = RETRY_COUNT,
