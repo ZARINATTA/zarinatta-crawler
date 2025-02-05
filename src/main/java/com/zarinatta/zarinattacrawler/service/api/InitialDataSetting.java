@@ -41,10 +41,7 @@ public class InitialDataSetting implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("초기 데이터 세팅 START - 시작 시간 : {}", LocalDateTime.now());
-        long startTime = System.currentTimeMillis();
         initialDataSet();
-        long endTime = System.currentTimeMillis();
-        log.info("초기 데이터 세팅 실행 시간 - {} ms", endTime - startTime);
     }
 
     public void initialDataSet() {
@@ -72,18 +69,26 @@ public class InitialDataSetting implements CommandLineRunner {
         executorService.shutdown();
     }
 
-    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate requestDate) throws UnsupportedEncodingException, MalformedURLException {
+    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate requestDate) {
         DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
         StringBuilder urlBuilder = new StringBuilder(requestUrl);
-        urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
-        urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", ENCODE));
-        urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", ENCODE));
-        urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", ENCODE));
-        urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), ENCODE));
-        urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), ENCODE));
-        urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(requestDate.format(total), ENCODE));
-        URL url = new URL(urlBuilder.toString());
-        return url;
+        try {
+            urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
+            urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(requestDate.format(total), ENCODE));
+            URL url = new URL(urlBuilder.toString());
+            return url;
+        } catch (UnsupportedEncodingException e) {
+            log.error("URL 인코딩 중 에러 발생", e);
+            throw new RuntimeException(e);
+        } catch (MalformedURLException e) {
+            log.error("URL 생성 중 에러 발생", e);
+            throw new RuntimeException(e);
+        }
     }
 
     public void convertToJsonAndSave(StringBuilder sb) {
