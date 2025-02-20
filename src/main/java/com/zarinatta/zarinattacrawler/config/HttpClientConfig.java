@@ -1,5 +1,6 @@
 package com.zarinatta.zarinattacrawler.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.ConnectionKeepAliveStrategy;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
@@ -13,20 +14,16 @@ import org.apache.hc.core5.http.message.BasicHeaderElementIterator;
 import org.apache.hc.core5.util.TimeValue;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Configuration
 public class HttpClientConfig {
 
-    @Bean
-    public PoolingHttpClientConnectionManager poolingHttpClientConnectionManager() {
-        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-        connManager.setMaxTotal(100);
-        connManager.setDefaultMaxPerRoute(20);
-        return connManager;
-    }
+    private static final int IDLE_TIMEOUT = 30 * 1000;
 
     @Bean
     public PoolingAsyncClientConnectionManager poolingAsyncClientConnectionManager(){
@@ -36,9 +33,23 @@ public class HttpClientConfig {
         return connManager;
     }
 
-
     @Bean
     public CloseableHttpClient httpClient() {
+        return HttpClients.custom()
+                .setConnectionManager(poolingHttpClientConnectionManager())
+                .setKeepAliveStrategy(getKeepAliveStrategy())
+                .build();
+    }
+
+    @Bean
+    public PoolingHttpClientConnectionManager poolingHttpClientConnectionManager() {
+        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+        connManager.setMaxTotal(100);
+        connManager.setDefaultMaxPerRoute(20);
+        return connManager;
+    }
+
+    private ConnectionKeepAliveStrategy getKeepAliveStrategy() {
         ConnectionKeepAliveStrategy keepAliveStrategy = (response, context) -> {
             BasicHeaderElementIterator it = new BasicHeaderElementIterator(
                     response.headerIterator("Keep-Alive"));
@@ -52,10 +63,28 @@ public class HttpClientConfig {
             }
             return TimeValue.ofSeconds(1200); // 기본 Keep-Alive 시간 설정
         };
-        return HttpClients.custom()
-                .setConnectionManager(null)
-                .setKeepAliveStrategy(keepAliveStrategy)
-                .build();
+        return keepAliveStrategy;
+    }
+
+    @Bean
+    public Runnable idleConnectionMonitor(final PoolingHttpClientConnectionManager connectionManager) {
+        return new Runnable() {
+            @Override
+            @Scheduled(fixedDelay = 30 * 1000)
+            public void run() {
+                try {
+                    if (connectionManager != null) {
+                        log.info("{} : 만료, idle 커넥션 종료.", Thread.currentThread().getName());
+                        connectionManager.closeExpired();
+                        connectionManager.closeIdle(TimeValue.ofSeconds(30));
+                    } else {
+                        log.error("{} : ConnectionManager가 없습니다.", Thread.currentThread().getName());
+                    }
+                } catch (Exception e) {
+                    log.error(Thread.currentThread().getName() + " : 만료, idle 커넥션 종료 중 예외 발생.", e);
+                }
+            }
+        };
     }
 
     @Bean
@@ -104,5 +133,4 @@ public class HttpClientConfig {
         }
         return requests;
     }
-
 }
