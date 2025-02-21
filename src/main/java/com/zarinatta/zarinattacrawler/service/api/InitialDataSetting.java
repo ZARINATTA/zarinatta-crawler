@@ -41,7 +41,7 @@ public class InitialDataSetting implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("초기 데이터 세팅 START - 시작 시간 : {}", LocalDateTime.now());
-        //initialDataSet();
+        initialDataSet();
     }
 
     public void initialDataSet() {
