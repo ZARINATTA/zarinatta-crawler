@@ -1,0 +1,60 @@
+name: Deploy ZARINATTA Batch
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Github Repository 파일 불러오기
+        uses: actions/checkout@v4
+
+      - name: JDK 17버전 설치
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: yml 파일 만들기
+        run: |
+          echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
+          echo "${{ secrets.APPLICATION_PROD_YML }}" > ./src/main/resources/application-prod.yml
+
+      - name: Gradle 실행 권한 부여
+        run: chmod +x ./gradlew
+
+      - name: 테스트 및 빌드하기
+        run: ./gradlew clean build -x test
+
+      - name: 빌드된 파일 이름 변경하기
+        run: mv ./build/libs/*SNAPSHOT.jar ./zarinatta-batch.jar
+
+      - name: SCP로 EC2에 빌드된 파일 전송하기
+        uses: appleboy/scp-action@v0.1.7
+        with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USERNAME }}
+            key: ${{ secrets.EC2_PRIVATE_KEY }}
+            port: 22
+            source: zarinatta-batch.jar
+            target: /home/ubuntu/zarinatta-batch/tobe
+
+      - name: SSH로 EC2에 접속하기
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            rm -rf /home/ubuntu/zarinatta-batch/current
+            mkdir /home/ubuntu/zarinatta-batch/current
+            mv /home/ubuntu/zarinatta-batch/tobe/zarinatta-batch.jar /home/ubuntu/zarinatta-batch/current/zarinatta-batch.jar
+            cd /home/ubuntu/zarinatta-batch/current
+            sudo fuser -k -n tcp 8080 || true
+            nohup java -jar zarinatta-batch.jar > ./output.log 2>&1 & 
+            rm -rf /home/ubuntu/zarinatta-batch/tobe
