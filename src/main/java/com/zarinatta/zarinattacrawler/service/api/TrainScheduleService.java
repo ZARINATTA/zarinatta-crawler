@@ -62,7 +62,6 @@ public class TrainScheduleService {
                 });
             }
         }
-        executorService.shutdown();
     }
 
     private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate weekAfter) {
