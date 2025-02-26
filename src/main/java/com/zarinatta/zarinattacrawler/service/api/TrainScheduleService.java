@@ -105,9 +105,9 @@ public class TrainScheduleService {
                             .ticketType(trainGradeName + " " + trainNo)
                             .departDate(depPlandTime.substring(0, 8))
                             .departStation(StationCode.valueOf(depPlaceName))
-                            .departTime(depPlandTime)
+                            .departTime(depPlandTime.substring(8, 12))
                             .arriveStation(StationCode.valueOf(arrPlaceName))
-                            .arriveTime(arrPlandTime)
+                            .arriveTime(arrPlandTime.substring(8, 12))
                             .price(adultCharge + "원")
                             .build());
                 }
