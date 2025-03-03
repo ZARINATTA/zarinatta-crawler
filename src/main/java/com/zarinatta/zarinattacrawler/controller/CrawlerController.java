@@ -7,6 +7,7 @@ import com.zarinatta.zarinattacrawler.service.crawler.legacy.AvailableSeatCrawle
 import com.zarinatta.zarinattacrawler.service.crawler.legacy.CrawlerServiceV1;
 import com.zarinatta.zarinattacrawler.service.crawler.legacy.JsoupSeatCrawlerV2;
 import com.zarinatta.zarinattacrawler.service.crawler.legacy.RealTimeSeatCrawlerV1;
+import com.zarinatta.zarinattacrawler.service.crawler.renew.RealTimeKorailCrawler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,12 +20,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/api/v1/crawler")
 public class CrawlerController {
 
+    private final RealTimeKorailCrawler realTimeKorailCrawler;
     private final CrawlerServiceV1 crawlerService;
     private final AvailableSeatCrawler availableSeatCrawler;
     private final RealTimeSeatCrawler realTimeSeatCrawler;
     private final RealTimeSeatCrawlerV1 realTimeSeatCrawlerV1;
     private final RealTimeSeatCrawlerV2 realTimeSeatCrawlerV2;
     private final JsoupSeatCrawlerV2 jsoupSeatCrawler;
+
+    // ==== 리뉴얼 코레일 페이지 ====//
+    @GetMapping("/realTime/renewal")
+    public String startCrawling() {
+        realTimeKorailCrawler.startCycle();
+        return "ok";
+    }
 
     //==== 즐겨 찾기만 크롤링 ====//
     @GetMapping("/realTime")
