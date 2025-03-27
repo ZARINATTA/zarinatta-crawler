@@ -45,14 +45,14 @@ public class SnsManager {
                     .build();
             PublishResponse publish = snsClient.publish(smsMessage);
             bookMark.messageIsSent();
-            bookMarkRepository.flush();
-            log.info("messageId: {} , body: {} ", publish.messageId(), publish);
+            bookMarkRepository.save(bookMark);
+            log.info("SMS Id: {}", publish.messageId());
         } catch (Exception e) {
             log.error("문자 전송 실패: {}", e.getMessage());
             throw new RuntimeException(e);
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
-        System.out.println("문자 보내는데 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
+        System.out.println("문자 발송 소요 시간 : " + estimatedTime / 1000.0 + " seconds");
         return CompletableFuture.completedFuture(null);
     }
 }
