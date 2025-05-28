@@ -38,11 +38,12 @@ public class TrainScheduleService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
 
-    @Scheduled(cron = "0 0 02 * * *")
+    @Scheduled(cron = "0 00 01 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
         LocalDate weekAfter = LocalDate.now().plusDays(6);
+        log.info(weekAfter + " - 배치 작업 시작");
         for (StationCode departureId : StationCode.values()) {
             for (StationCode arriveId : StationCode.values()) {
                 executorService.submit(() -> {
