@@ -66,7 +66,6 @@ public class InitialDataSetting implements CommandLineRunner {
                 }
             }
         }
-        executorService.shutdown();
     }
 
     private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate requestDate) {
