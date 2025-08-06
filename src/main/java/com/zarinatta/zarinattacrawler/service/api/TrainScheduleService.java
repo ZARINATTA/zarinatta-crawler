@@ -5,11 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
-import com.zarinatta.zarinattacrawler.repository.TicketRepository;
+import com.zarinatta.zarinattacrawler.repository.TicketRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -33,13 +34,14 @@ import java.util.concurrent.TimeUnit;
 public class TrainScheduleService {
 
     private final ApiService apiService;
-    private final TicketRepository ticketRepository;
+    private final TicketRepositoryCustom ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
 
-    @Scheduled(cron = "0 50 21 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 50 2 * * *", zone = "Asia/Seoul")
+    @Transactional
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
         log.info("=========기차 시간표 배치 작업 시작=========");
