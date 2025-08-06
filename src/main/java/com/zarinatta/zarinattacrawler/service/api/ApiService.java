@@ -27,10 +27,7 @@ public class ApiService {
     private final int RETRY_COUNT = 3;
     private final int DELAY_TIME = 2000;
 
-    @Retryable(retryFor = {SocketTimeoutException.class},
-            maxAttempts = RETRY_COUNT,
-            backoff = @Backoff(delay = DELAY_TIME),
-            recover = "recover")
+    @Transactional
     public StringBuilder callTrainApi(URL url) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
@@ -52,11 +49,5 @@ public class ApiService {
         rd.close();
         conn.disconnect();
         return sb;
-    }
-
-    @Recover
-    public StringBuilder recover(SocketTimeoutException e, URL url) {
-        log.error("3회 호출 에도 응답 없는 호출 : {}", url);
-        return new StringBuilder();
     }
 }
