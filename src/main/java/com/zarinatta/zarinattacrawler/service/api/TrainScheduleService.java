@@ -5,12 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
-import com.zarinatta.zarinattacrawler.repository.TicketRepositoryCustom;
+import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -18,28 +17,32 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class TrainScheduleService {
 
     private final ApiService apiService;
-    private final TicketRepositoryCustom ticketRepository;
+    private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
 
-    @Scheduled(cron = "0 00 19 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 50 21 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
+        LocalDateTime startTime = LocalDateTime.now();
+        log.info("=========기차 시간표 배치 작업 시작=========");
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
         LocalDate weekAfter = LocalDate.now().plusDays(6);
@@ -62,6 +65,19 @@ public class TrainScheduleService {
                 });
             }
         }
+        executorService.shutdown();
+        try {
+            // 모든 작업이 완료되거나 최대 1시간까지 대기
+            if (!executorService.awaitTermination(12, TimeUnit.HOURS)) {
+                log.warn("일정 시간 내에 모든 작업이 완료되지 않았습니다.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("대기 중 인터럽트 발생", e);
+        }
+        LocalDateTime endTime = LocalDateTime.now();
+        log.info("=========기차 시간표 배치 작업 끝=========");
+        log.info("소요시간 : {} minute =========", ChronoUnit.MINUTES.between(startTime, endTime));
     }
 
     private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate weekAfter) {
@@ -85,7 +101,6 @@ public class TrainScheduleService {
             throw new RuntimeException(e);
         }
     }
-
     public void convertToJsonAndSave(StringBuilder sb) {
         ObjectMapper mapper = new ObjectMapper();
         List<Ticket> ticketList = new ArrayList<>();
