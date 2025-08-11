@@ -70,7 +70,7 @@ public class HttpClientConfig {
     public Runnable idleConnectionMonitor(final PoolingHttpClientConnectionManager connectionManager) {
         return new Runnable() {
             @Override
-            @Scheduled(fixedDelay = 30 * 1000)
+            @Scheduled(fixedDelay = 2 * 100000)
             public void run() {
                 try {
                     if (connectionManager != null) {
