@@ -55,11 +55,5 @@ public class SnsManager {
 
     @Async("MessageExecutor")
     public void mockSNSTest(String message, String phoneNumber, BookMark bookMark) {
-        try {
-            Thread.sleep(300);
-        } catch (Exception e) {
-            log.error("문자 전송 실패");
-            throw new RuntimeException(e);
-        }
     }
 }
