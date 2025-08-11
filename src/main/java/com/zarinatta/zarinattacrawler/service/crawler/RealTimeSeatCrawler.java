@@ -149,7 +149,6 @@ public class RealTimeSeatCrawler {
         return String.format("%02d", Integer.parseInt(minusTime));
     }
 
-    @Transactional
     public void sendSMS(List<BookMark> bookMarks, Element ticket) {
         String waitSeat = ticket.select("td:nth-of-type(10) img").attr("alt");
         String firstClass = ticket.select("td:nth-of-type(5) img").attr("alt");

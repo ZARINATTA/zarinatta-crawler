@@ -137,7 +137,6 @@ public class RealTimeKorailCrawler {
         return null;
     }
 
-    @Transactional
     public void sendSMS(List<BookMark> bookMarks, TrainInfo realTimeTargetInfo) {
         for (BookMark bookMark : bookMarks) {
             User user = bookMark.getUser();
