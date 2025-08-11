@@ -166,7 +166,7 @@ public class RealTimeKorailCrawler {
             message.append(" 여석이 생겼습니다!");
             if (ticketExist) {
                 String phoneNumber = user.getUserPhoneNumber();
-                snsManager.sendSnsForBookMark(String.valueOf(message), phoneNumber, bookMark);
+                snsManager.mockSNSTest(String.valueOf(message), phoneNumber, bookMark);
                 bookMark.messageIsSent();
                 log.info(message.toString());
             }
