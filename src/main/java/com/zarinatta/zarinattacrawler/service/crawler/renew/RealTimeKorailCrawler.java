@@ -137,7 +137,6 @@ public class RealTimeKorailCrawler {
         return null;
     }
 
-    @Transactional
     public void sendSMS(List<BookMark> bookMarks, TrainInfo realTimeTargetInfo) {
         for (BookMark bookMark : bookMarks) {
             User user = bookMark.getUser();
@@ -167,7 +166,7 @@ public class RealTimeKorailCrawler {
             message.append(" 여석이 생겼습니다!");
             if (ticketExist) {
                 String phoneNumber = user.getUserPhoneNumber();
-                snsManager.sendSnsForBookMark(String.valueOf(message), phoneNumber, bookMark);
+                snsManager.mockSNSTest(String.valueOf(message), phoneNumber, bookMark);
                 bookMark.messageIsSent();
                 log.info(message.toString());
             }

@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -40,15 +39,13 @@ public class TrainScheduleService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
 
-    @Scheduled(cron = "0 50 2 * * *", zone = "Asia/Seoul")
-    @Transactional
+    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
-        log.info("=========기차 시간표 배치 작업 시작=========");
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
         LocalDate weekAfter = LocalDate.now().plusDays(6);
-        log.info(weekAfter + " - 배치 작업 시작");
+        log.info("========= {} 기차 시간표 배치 작업 시작=========", weekAfter);
         for (StationCode departureId : StationCode.values()) {
             for (StationCode arriveId : StationCode.values()) {
                 executorService.submit(() -> {
@@ -61,7 +58,7 @@ public class TrainScheduleService {
                         convertToJsonAndSave(sb);
                     } catch (IOException e) {
                         log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
-                        log.error("원본 예외", e);
+                        log.error("원본 예외 : ", e);
                         throw new RuntimeException(e);
                     }
                 });
@@ -69,7 +66,6 @@ public class TrainScheduleService {
         }
         executorService.shutdown();
         try {
-            // 모든 작업이 완료되거나 최대 1시간까지 대기
             if (!executorService.awaitTermination(12, TimeUnit.HOURS)) {
                 log.warn("일정 시간 내에 모든 작업이 완료되지 않았습니다.");
             }
@@ -78,7 +74,7 @@ public class TrainScheduleService {
             log.error("대기 중 인터럽트 발생", e);
         }
         LocalDateTime endTime = LocalDateTime.now();
-        log.info("=========기차 시간표 배치 작업 끝=========");
+        log.info("========= {} 기차 시간표 배치 작업 끝=========", weekAfter);
         log.info("소요시간 : {} minute =========", ChronoUnit.MINUTES.between(startTime, endTime));
     }
 

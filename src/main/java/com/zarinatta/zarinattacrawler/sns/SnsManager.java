@@ -34,10 +34,9 @@ public class SnsManager {
         System.out.println("문자 보내는데 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
     }
 
-    @Async
+    @Async("MessageExecutor")
     @Transactional
     public CompletableFuture<Void> sendSnsForBookMark(String message, String phoneNumber, BookMark bookMark) {
-        long startTime = System.currentTimeMillis();
         try {
             PublishRequest smsMessage = PublishRequest.builder()
                     .message(message)
@@ -46,13 +45,21 @@ public class SnsManager {
             PublishResponse publish = snsClient.publish(smsMessage);
             bookMark.messageIsSent();
             bookMarkRepository.save(bookMark);
-            log.info("SMS Id: {}", publish.messageId());
+            log.info("문자 전송 완료 - SMS Id : {}", publish.messageId());
         } catch (Exception e) {
             log.error("문자 전송 실패: {}", e.getMessage());
             throw new RuntimeException(e);
         }
-        long estimatedTime = System.currentTimeMillis() - startTime;
-        System.out.println("문자 발송 소요 시간 : " + estimatedTime / 1000.0 + " seconds");
         return CompletableFuture.completedFuture(null);
+    }
+
+
+    public void mockSNSTest(String message, String phoneNumber, BookMark bookMark) {
+        try {
+            Thread.sleep(1000);
+        } catch (Exception e) {
+            log.error("문자 전송 실패");
+            throw new RuntimeException(e);
+        }
     }
 }
