@@ -15,6 +15,8 @@ import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,11 +46,36 @@ public class RealTimeKorailCrawler {
         long startTime = System.currentTimeMillis();
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
-        List<BookMark> bookMarkList = bookMarkRepository.findAllByAfterNow(dateFormatter.format(LocalDateTime.now()), timeFormatter.format(LocalDateTime.now()));
-        Map<Ticket, List<BookMark>> ticketBookMarkMap = makeBookMarkUserMap(bookMarkList);
-        realtimeSeatCrawler(ticketBookMarkMap);
+        int page = 0;
+        int chunkSize = 100;
+        Page<BookMark> pageResult = bookMarkRepository.findChunkByAfterNow(
+                dateFormatter.format(LocalDateTime.now()),
+                timeFormatter.format(LocalDateTime.now()),
+                PageRequest.of(page, chunkSize)
+        );
+        while (pageResult.hasContent()) {
+            List<BookMark> bookMarkList = pageResult.getContent();
+            Map<Ticket, List<BookMark>> ticketBookMarkMap = makeBookMarkUserMap(bookMarkList);
+            realtimeSeatCrawler(ticketBookMarkMap);
+            long crawlTime = System.currentTimeMillis() - startTime;
+            log.info("Chunk {} 크롤링 + DB 조회 소요 시간 : {} seconds", page, crawlTime / 1000.0);
+            if (pageResult.hasNext()) {
+                long DBStart = System.currentTimeMillis();
+
+                page++;
+                pageResult = bookMarkRepository.findChunkByAfterNow(
+                        dateFormatter.format(LocalDateTime.now()),
+                        timeFormatter.format(LocalDateTime.now()),
+                        PageRequest.of(page, chunkSize)
+                );
+                long DBFIN = System.currentTimeMillis();
+                log.info("DB 조회 소요 시간 : {} seconds", DBFIN-DBStart, crawlTime / 1000.0);
+            } else {
+                break;
+            }
+        }
         long estimatedTime = System.currentTimeMillis() - startTime;
-        System.out.println("크롤링 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
+        log.info("전체 작업 소요 시간 : " + estimatedTime / 1000.0 + " seconds");
     }
 
     private Map<Ticket, List<BookMark>> makeBookMarkUserMap(List<BookMark> bookMarkList) {
@@ -82,7 +109,10 @@ public class RealTimeKorailCrawler {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            } finally {
+            } catch (Exception e) {
+                log.error("===크롤러 막힘===");
+            }
+            finally {
                 post.reset();
             }
         }
@@ -166,7 +196,7 @@ public class RealTimeKorailCrawler {
             message.append(" 여석이 생겼습니다!");
             if (ticketExist) {
                 String phoneNumber = user.getUserPhoneNumber();
-                snsManager.mockSNSTest(String.valueOf(message), phoneNumber, bookMark);
+                snsManager.sendSnsForBookMark(String.valueOf(message), phoneNumber, bookMark);
                 bookMark.messageIsSent();
                 log.info(message.toString());
             }
