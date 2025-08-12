@@ -41,9 +41,9 @@ public class InitialDataSetting implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("초기 데이터 세팅 START - 시작 시간 : {}", LocalDateTime.now());
-        //initialDataSet();
+        initialDataSet();
     }
-    // ex) 8월 12일 Start ~ 8월 17일 까지의 기차 시간표를 수집
+    // 8월 12일 Start ~ 8월 17일 까지의 기차 시간표를 수집
     public void initialDataSet() {
         for (LocalDate date = LocalDate.now(); LocalDate.now().plusDays(5).isAfter(date); date = date.plusDays(1)) {
             for (StationCode departureId : StationCode.values()) {
