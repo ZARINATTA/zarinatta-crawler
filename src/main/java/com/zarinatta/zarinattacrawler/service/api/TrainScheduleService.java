@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -63,15 +62,6 @@ public class TrainScheduleService {
                     }
                 });
             }
-        }
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(12, TimeUnit.HOURS)) {
-                log.warn("일정 시간 내에 모든 작업이 완료되지 않았습니다.");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("대기 중 인터럽트 발생", e);
         }
         LocalDateTime endTime = LocalDateTime.now();
         log.info("========= {} 기차 시간표 배치 작업 끝=========", weekAfter);
