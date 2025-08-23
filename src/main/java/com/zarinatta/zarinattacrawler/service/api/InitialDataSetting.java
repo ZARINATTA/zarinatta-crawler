@@ -45,7 +45,7 @@ public class InitialDataSetting implements CommandLineRunner {
     }
     // 8월 12일 Start ~ 8월 17일 까지의 기차 시간표를 수집
     public void initialDataSet() {
-        for (LocalDate date = LocalDate.now(); LocalDate.now().plusDays(5).isAfter(date); date = date.plusDays(1)) {
+        for (LocalDate date = LocalDate.now(); LocalDate.now().plusDays(6).isAfter(date); date = date.plusDays(1)) {
             for (StationCode departureId : StationCode.values()) {
                 for (StationCode arriveId : StationCode.values()) {
                     LocalDate requestDate = date;
