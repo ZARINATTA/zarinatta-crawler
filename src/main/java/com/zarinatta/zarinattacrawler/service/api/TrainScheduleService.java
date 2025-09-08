@@ -8,7 +8,6 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -38,7 +37,7 @@ public class TrainScheduleService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
 
-    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
@@ -47,6 +46,7 @@ public class TrainScheduleService {
         log.info("========= {} 기차 시간표 배치 작업 시작=========", weekAfter);
         for (StationCode departureId : StationCode.values()) {
             for (StationCode arriveId : StationCode.values()) {
+                if (departureId == arriveId) continue;
                 executorService.submit(() -> {
                     try {
                         // URL 생성
