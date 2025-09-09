@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -94,10 +95,6 @@ public class RealTimeKorailCrawlerV2 {
                 post.reset();
                 target.getBookMarks();
             }
-            /*
-
-
-
             long minDelayMillis = 1000; // 1초
             long maxDelayMillis = 5000; // 5초
             long randomDelay = ThreadLocalRandom.current().nextLong(minDelayMillis, maxDelayMillis);
@@ -105,7 +102,7 @@ public class RealTimeKorailCrawlerV2 {
                 Thread.sleep(randomDelay);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
-            }*/
+            }
         }
     }
 
