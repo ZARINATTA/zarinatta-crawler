@@ -110,7 +110,7 @@ public class RealTimeKorailCrawler {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (Exception e) {
-                log.error("===크롤러 막힘===");
+                log.error(e.toString());
             }
             finally {
                 post.reset();
