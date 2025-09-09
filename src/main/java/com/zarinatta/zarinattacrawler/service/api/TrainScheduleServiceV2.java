@@ -8,7 +8,6 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,7 +38,7 @@ public class TrainScheduleServiceV2 {
     private final String ENCODE = "UTF-8";
     private final Semaphore dbSemaphore = new Semaphore(10);
 
-    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
         LocalDate weekAfter = LocalDate.now().plusDays(5);
