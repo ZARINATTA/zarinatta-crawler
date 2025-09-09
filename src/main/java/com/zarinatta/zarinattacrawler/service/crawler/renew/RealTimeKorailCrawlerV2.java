@@ -6,7 +6,7 @@ import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.entity.User;
 import com.zarinatta.zarinattacrawler.enums.SeatLookingFor;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
-import com.zarinatta.zarinattacrawler.repository.BookMarkRepository;
+import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import com.zarinatta.zarinattacrawler.sns.SnsManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +15,8 @@ import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,51 +25,45 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RealTimeKorailCrawler {
+public class RealTimeKorailCrawlerV2 {
 
     private final CloseableHttpClient httpClient;
-    private final BookMarkRepository bookMarkRepository;
+    private final TicketRepository ticketRepository;
     private final SnsManager snsManager;
     private final ObjectMapper objectMapper;
 
-    // @Scheduled(fixedDelay = 30000)
+    /**
+     * Map<Ticket, List<BookMark>>를 DB에서 한번에 가져오는 방식으로 변경
+     */
+    @Scheduled(fixedDelay = 30000)
     public void startCycle() {
         long startTime = System.currentTimeMillis();
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
         int page = 0;
-        int chunkSize = 100;
-        Page<BookMark> pageResult = bookMarkRepository.findChunkByAfterNow(
+        int chunkSize = 8;
+        Slice<Long> ticketIds = ticketRepository.findTicketIdsAfterNow(
                 dateFormatter.format(LocalDateTime.now()),
                 timeFormatter.format(LocalDateTime.now()),
-                PageRequest.of(page, chunkSize)
-        );
-        while (pageResult.hasContent()) {
-            List<BookMark> bookMarkList = pageResult.getContent();
-            Map<Ticket, List<BookMark>> ticketBookMarkMap = makeBookMarkUserMap(bookMarkList);
-            realtimeSeatCrawler(ticketBookMarkMap);
+                PageRequest.of(page, chunkSize));
+        while (ticketIds.hasContent()) {
+            List<Ticket> targetTickets = ticketRepository.findTicketsWithDetailsByIds(ticketIds.getContent());
+            realtimeSeatCrawler(targetTickets);
             long crawlTime = System.currentTimeMillis() - startTime;
             log.info("Chunk {} 크롤링 + DB 조회 소요 시간 : {} seconds", page, crawlTime / 1000.0);
-            if (pageResult.hasNext()) {
-                long DBStart = System.currentTimeMillis();
-
+            if (ticketIds.hasNext()) {
                 page++;
-                pageResult = bookMarkRepository.findChunkByAfterNow(
+                ticketIds = ticketRepository.findTicketIdsAfterNow(
                         dateFormatter.format(LocalDateTime.now()),
                         timeFormatter.format(LocalDateTime.now()),
-                        PageRequest.of(page, chunkSize)
-                );
-                long DBFIN = System.currentTimeMillis();
-                log.info("DB 조회 소요 시간 : {} seconds", DBFIN-DBStart, crawlTime / 1000.0);
+                        PageRequest.of(page, chunkSize));
             } else {
                 break;
             }
@@ -78,23 +72,8 @@ public class RealTimeKorailCrawler {
         log.info("전체 작업 소요 시간 : " + estimatedTime / 1000.0 + " seconds");
     }
 
-    private Map<Ticket, List<BookMark>> makeBookMarkUserMap(List<BookMark> bookMarkList) {
-        Map<Ticket, List<BookMark>> ticketBookMarkMap = new HashMap<>();
-        for (BookMark bookMark : bookMarkList) {
-            if (ticketBookMarkMap.containsKey(bookMark.getTicket())) {
-                ticketBookMarkMap.get(bookMark.getTicket()).add(bookMark);
-            } else {
-                List<BookMark> list = new ArrayList<>();
-                list.add(bookMark);
-                ticketBookMarkMap.put(bookMark.getTicket(), list);
-            }
-        }
-        return ticketBookMarkMap;
-    }
-
-    private void realtimeSeatCrawler(Map<Ticket, List<BookMark>> ticketBookMarkMap) {
-        for (Map.Entry<Ticket, List<BookMark>> ticketBookMarkSet : ticketBookMarkMap.entrySet()) {
-            Ticket target = ticketBookMarkSet.getKey();
+    private void realtimeSeatCrawler(List<Ticket> ticketList) {
+        for (Ticket target : ticketList) {
             HttpPost post = makeHttpPost(target.getDepartStation(), target.getArriveStation(), target.getDepartDate(), target.getDepartTime());
             try { // 데이터 가져 오기
                 KorailResponseDto generalResponse = httpClient.execute(post, response -> {
@@ -103,17 +82,26 @@ public class RealTimeKorailCrawler {
                 });
                 if (generalResponse.getResultStatus().equals("SUCC")) {
                     TrainInfo realTimeTargetInfo = findTarget(target, generalResponse.getTrainInfos().getTrainInfoList());
-                    sendSMS(ticketBookMarkSet.getValue(), realTimeTargetInfo);
+                    sendSMS(target.getBookMarks(), realTimeTargetInfo);
                 } else {
                     log.error("Korail Error Response: " + generalResponse.getMessageText());
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (Exception e) {
-                log.error(e.toString());
+                log.error(String.valueOf(e));
             }
             finally {
                 post.reset();
+                target.getBookMarks();
+            }
+            long minDelayMillis = 1000; // 1초
+            long maxDelayMillis = 5000; // 5초
+            long randomDelay = ThreadLocalRandom.current().nextLong(minDelayMillis, maxDelayMillis);
+            try {
+                Thread.sleep(randomDelay);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
     }

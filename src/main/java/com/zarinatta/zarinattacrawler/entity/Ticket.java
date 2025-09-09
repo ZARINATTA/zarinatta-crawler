@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Getter
 @Table
@@ -43,8 +45,11 @@ public class Ticket {
     @Column(name = "PRICE", nullable = false)
     private String price;
 
+    @OneToMany(mappedBy = "ticket", fetch = FetchType.LAZY)
+    private List<BookMark> bookMarks;
+
     @Builder
-    public Ticket(String ticketType, String departDate, String departTime, StationCode departStation, String arriveTime, StationCode arriveStation, String price) {
+    public Ticket(String ticketType, String departDate, String departTime, StationCode departStation, String arriveTime, StationCode arriveStation, String price, List<BookMark> bookMarks) {
         this.ticketType = ticketType;
         this.departDate = departDate;
         this.departTime = departTime;
@@ -52,5 +57,6 @@ public class Ticket {
         this.arriveTime = arriveTime;
         this.arriveStation = arriveStation;
         this.price = price;
+        this.bookMarks = bookMarks;
     }
 }
