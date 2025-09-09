@@ -41,7 +41,7 @@ public class RealTimeKorailCrawler {
     private final SnsManager snsManager;
     private final ObjectMapper objectMapper;
 
-    @Scheduled(fixedDelay = 30000)
+    // @Scheduled(fixedDelay = 30000)
     public void startCycle() {
         long startTime = System.currentTimeMillis();
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
