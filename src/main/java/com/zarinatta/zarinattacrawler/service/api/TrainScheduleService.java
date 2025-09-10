@@ -8,6 +8,7 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -37,7 +38,7 @@ public class TrainScheduleService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
 
-    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
@@ -116,7 +117,7 @@ public class TrainScheduleService {
                 }
             }
         } catch (JsonProcessingException e) {
-            log.error("JSON 파싱 중 에러 발생", e);
+            log.error("JSON 파싱 중 에러 발생. 원본 데이터: {}", sb, e);
             throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);
