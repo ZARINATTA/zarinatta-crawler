@@ -28,7 +28,7 @@ import java.util.concurrent.Semaphore;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TrainScheduleServiceV2 {
+public class TicketSchedulerV2 {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
