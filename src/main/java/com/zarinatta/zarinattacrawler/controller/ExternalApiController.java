@@ -5,11 +5,14 @@ import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiServiceV1;
 import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiTest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.time.LocalDate;
 
 import static java.time.LocalDateTime.now;
 
@@ -25,13 +28,20 @@ public class ExternalApiController {
 
     @GetMapping("/trainInfo")
     public String callTrainInfoApi() {
-        long startTime = System.currentTimeMillis();
         ticketScheduler.getTrainSchedule();
-        long estimatedTime = System.currentTimeMillis() - startTime;
-        System.out.println("총 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
         return "ok";
     }
 
+    @GetMapping("/trainInfo/range")
+    public String callTrainInfoApiWithRange(@RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        ticketScheduler.getTicketByRange(startDate, endDate);
+        return "{} ~ {} 기간의 열차 정보를 수집합니다.".formatted(startDate, endDate);
+    }
+
+    /**
+     * ============== Legacy API ===============
+     */
     @GetMapping("/mono/trainInfo")
     public String callTrainInfoApiMono() {
         trainInfoApiServiceV1.getTrainInfo();
