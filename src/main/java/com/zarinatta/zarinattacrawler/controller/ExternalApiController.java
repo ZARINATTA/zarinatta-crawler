@@ -1,6 +1,6 @@
 package com.zarinatta.zarinattacrawler.controller;
 
-import com.zarinatta.zarinattacrawler.service.api.TrainScheduleService;
+import com.zarinatta.zarinattacrawler.service.api.TicketScheduler;
 import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiServiceV1;
 import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiTest;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +19,14 @@ import static java.time.LocalDateTime.now;
 @RequestMapping(value = "/api/v1/external")
 public class ExternalApiController {
 
-    private final TrainScheduleService trainScheduleService;
+    private final TicketScheduler ticketScheduler;
     private final TrainInfoApiTest trainInfoApiTest;
     private final TrainInfoApiServiceV1 trainInfoApiServiceV1;
 
     @GetMapping("/trainInfo")
     public String callTrainInfoApi() {
         long startTime = System.currentTimeMillis();
-        trainScheduleService.getTrainSchedule();
+        ticketScheduler.getTrainSchedule();
         long estimatedTime = System.currentTimeMillis() - startTime;
         System.out.println("총 걸린 시간 : " + estimatedTime / 1000.0 + " seconds");
         return "ok";

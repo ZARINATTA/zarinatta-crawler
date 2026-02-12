@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TrainScheduleService {
+public class TicketScheduler {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
