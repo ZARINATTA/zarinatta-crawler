@@ -16,62 +16,71 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TrainScheduleServiceV2 {
+public class TicketScheduler {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
-    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";
-    private final Semaphore dbSemaphore = new Semaphore(10);
 
-    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    /**
+     * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
+     */
+    public void getTicketByRange(LocalDate start, LocalDate end) {
+        log.info("=========[수동] 열차 데이터 수집 시작: {} ~ {} =========", start, end);
+        LocalDate targetDate = start;
+        while (!targetDate.isAfter(end)) {
+            getTicketByAPI(targetDate);
+            targetDate = targetDate.plusDays(1);
+        }
+    }
+
+    /**
+     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
+     */
+    //@Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
-        LocalDateTime startTime = LocalDateTime.now();
-        LocalDate weekAfter = LocalDate.now().plusDays(5);
-        log.info("========= {} 기차 시간표 배치 작업 시작=========", weekAfter);
-        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
-            for (StationCode departureId : StationCode.values()) {
-                for (StationCode arriveId : StationCode.values()) {
-                    if (departureId == arriveId) continue;
-                    executorService.submit(() -> {
-                        try {
-                            dbSemaphore.acquire();
-                            // URL 생성
-                            URL url = buildUrl(departureId, arriveId, weekAfter);
-                            // API 호출
-                            StringBuilder sb = apiService.callTrainApi(url);
-                            // JSON 파싱 및 저장
-                            convertToJsonAndSave(sb);
-                        } catch (IOException e) {
-                            log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
-                            log.error("원본 예외 : ", e);
-                            throw new RuntimeException(e);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        } finally {
-                            dbSemaphore.release(); // 작업 완료 후 허가 반납
-                        }
-                    });
-                }
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
+        executor.prestartAllCoreThreads();
+        LocalDate targetDate = LocalDate.now().plusDays(5);
+        log.info("=========================================================");
+        log.info("[스케쥴러] 기차 시간표 수집 작업 시작 | 대상 날짜: {}", targetDate);
+        log.info("=========================================================");
+        getTicketByAPI(targetDate);
+    }
+
+    private void getTicketByAPI(LocalDate targetDate) {
+        for (StationCode departureId : StationCode.values()) {
+            for (StationCode arriveId : StationCode.values()) {
+                if (departureId == arriveId) continue;
+                executorService.submit(() -> {
+                    try {
+                        // 1. URL 생성
+                        URL url = buildUrl(departureId, arriveId, targetDate);
+                        // 2. API 호출
+                        StringBuilder sb = apiService.callTrainApi(url);
+                        // 3. JSON 파싱 및 저장
+                        convertToJsonAndSave(sb);
+                    } catch (IOException e) {
+                        log.error("[IO ERROR] API 호출 실패 - 경로 {} -> {}", departureId, arriveId);
+                        log.error("[IO ERROR] 원본 예외 {} ", e.getMessage());
+                        throw new RuntimeException(e);
+                    }
+                });
             }
         }
-        LocalDateTime endTime = LocalDateTime.now();
-        log.info("========= {} 기차 시간표 배치 작업 끝=========", weekAfter);
-        log.info("소요시간 : {} minute =========", ChronoUnit.MINUTES.between(startTime, endTime));
     }
 
     private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate weekAfter) {
@@ -88,14 +97,15 @@ public class TrainScheduleServiceV2 {
             URL url = new URL(urlBuilder.toString());
             return url;
         } catch (UnsupportedEncodingException e) {
-            log.error("URL 인코딩 중 에러 발생", e);
+            log.error("[URL ERROR] URL 인코딩 중 에러 발생", e);
             throw new RuntimeException(e);
         } catch (MalformedURLException e) {
-            log.error("URL 생성 중 에러 발생", e);
+            log.error("[URL ERROR] URL 생성 중 에러 발생", e);
             throw new RuntimeException(e);
         }
     }
-    public void convertToJsonAndSave(StringBuilder sb) {
+
+    private void convertToJsonAndSave(StringBuilder sb) {
         ObjectMapper mapper = new ObjectMapper();
         List<Ticket> ticketList = new ArrayList<>();
         try {
@@ -122,7 +132,7 @@ public class TrainScheduleServiceV2 {
                 }
             }
         } catch (JsonProcessingException e) {
-            log.error("JSON 파싱 중 에러 발생", e);
+            log.error("[JSON ERROR] 응답 데이터 파싱 실패 - 원본 : {}", sb, e);
             throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);

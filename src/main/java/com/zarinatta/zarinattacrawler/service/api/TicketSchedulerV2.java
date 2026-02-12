@@ -23,44 +23,50 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TrainScheduleService {
+public class TicketSchedulerV2 {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
-    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
+    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
     private final String ENCODE = "UTF-8";
+    private final Semaphore dbSemaphore = new Semaphore(10);
 
-    //@Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
-        executor.prestartAllCoreThreads();
         LocalDate weekAfter = LocalDate.now().plusDays(5);
         log.info("========= {} 기차 시간표 배치 작업 시작=========", weekAfter);
-        for (StationCode departureId : StationCode.values()) {
-            for (StationCode arriveId : StationCode.values()) {
-                if (departureId == arriveId) continue;
-                executorService.submit(() -> {
-                    try {
-                        // URL 생성
-                        URL url = buildUrl(departureId, arriveId, weekAfter);
-                        // API 호출
-                        StringBuilder sb = apiService.callTrainApi(url);
-                        // JSON 파싱 및 저장
-                        convertToJsonAndSave(sb);
-                    } catch (IOException e) {
-                        log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
-                        log.error("원본 예외 : ", e);
-                        throw new RuntimeException(e);
-                    }
-                });
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (StationCode departureId : StationCode.values()) {
+                for (StationCode arriveId : StationCode.values()) {
+                    if (departureId == arriveId) continue;
+                    executorService.submit(() -> {
+                        try {
+                            dbSemaphore.acquire();
+                            // URL 생성
+                            URL url = buildUrl(departureId, arriveId, weekAfter);
+                            // API 호출
+                            StringBuilder sb = apiService.callTrainApi(url);
+                            // JSON 파싱 및 저장
+                            convertToJsonAndSave(sb);
+                        } catch (IOException e) {
+                            log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
+                            log.error("원본 예외 : ", e);
+                            throw new RuntimeException(e);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            dbSemaphore.release(); // 작업 완료 후 허가 반납
+                        }
+                    });
+                }
             }
         }
         LocalDateTime endTime = LocalDateTime.now();
@@ -116,7 +122,7 @@ public class TrainScheduleService {
                 }
             }
         } catch (JsonProcessingException e) {
-            log.error("JSON 파싱 중 에러 발생. 원본 데이터: {}", sb, e);
+            log.error("JSON 파싱 중 에러 발생", e);
             throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);
