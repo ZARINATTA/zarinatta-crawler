@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
+import static java.time.LocalDateTime.now;
+
 @Slf4j
 @RequiredArgsConstructor
 @RestController
@@ -48,6 +50,6 @@ public class ExternalApiController {
 
     @GetMapping("/sentry/test")
     public void sentryTest(){
-        throw new RuntimeException("Sentry 테스트 - timestamp: " + System.currentTimeMillis());
+        throw new RuntimeException("Sentry 테스트 - timestamp: " + now());
     }
 }
