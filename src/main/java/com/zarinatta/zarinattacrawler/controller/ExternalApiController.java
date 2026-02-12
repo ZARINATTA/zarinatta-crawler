@@ -45,4 +45,9 @@ public class ExternalApiController {
         }
         return "ok";
     }
+
+    @GetMapping("/sentry/test")
+    public void sentryTest(){
+        throw new RuntimeException("Sentry 테스트 - timestamp: " + System.currentTimeMillis());
+    }
 }

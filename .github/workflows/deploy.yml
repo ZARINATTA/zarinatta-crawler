@@ -26,7 +26,9 @@ jobs:
       - name: Gradle 실행 권한 부여
         run: chmod +x ./gradlew
 
-      - name: 테스트 및 빌드하기
+      - name: 빌드하기
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: ./gradlew clean build -x test
 
       - name: 빌드된 파일 이름 변경하기
