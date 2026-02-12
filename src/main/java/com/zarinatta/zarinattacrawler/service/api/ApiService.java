@@ -1,7 +1,12 @@
 package com.zarinatta.zarinattacrawler.service.api;
 
+import com.zarinatta.zarinattacrawler.entity.FailedTicketLog;
+import com.zarinatta.zarinattacrawler.repository.FailedTicketLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,25 +14,34 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ApiService {
+
     private final int OK = 200;
     private final int REDIRECT = 300;
-
     private final int TIMEOUT_VALUE = 5000;
     private final int RETRY_COUNT = 3;
     private final int DELAY_TIME = 2000;
 
+    private final FailedTicketLogRepository failedTicketLogRepository;
+
+    @Retryable(retryFor = {SocketTimeoutException.class},
+            maxAttempts = RETRY_COUNT,
+            backoff = @Backoff(delay = DELAY_TIME, multiplier = 2.0),
+            recover = "recover")
     public StringBuilder callTrainApi(URL url) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Content-type", "application/json");
-        conn.setConnectTimeout(TIMEOUT_VALUE);
+        conn.setConnectTimeout(TIMEOUT_VALUE); // 연결 대기 5초
+        conn.setReadTimeout(TIMEOUT_VALUE); // 읽기 대기 5초
         // 호출 결과 파싱
         BufferedReader rd;
         int responseCode = conn.getResponseCode();
@@ -44,5 +58,19 @@ public class ApiService {
         rd.close();
         conn.disconnect();
         return sb;
+    }
+
+    @Recover
+    @Transactional
+    public StringBuilder recover(SocketTimeoutException e, URL url) {
+        log.error("[API FAIL] 재시도 후 최종 실패 - URL : {}", url);
+        log.error("원본 Exception : ", e);
+        FailedTicketLog errorLog = FailedTicketLog.builder()
+                .requestUrl(url.toString())
+                .failMessage(e.getMessage())
+                .failedAt(LocalDateTime.now())
+                .build();
+        failedTicketLogRepository.save(errorLog);
+        return new StringBuilder();
     }
 }
