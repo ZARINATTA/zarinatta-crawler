@@ -8,7 +8,6 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ApiService {
 
     private final int OK = 200;

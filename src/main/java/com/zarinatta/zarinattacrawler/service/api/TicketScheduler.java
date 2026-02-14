@@ -132,7 +132,8 @@ public class TicketScheduler {
                 }
             }
         } catch (JsonProcessingException e) {
-            log.error("[JSON ERROR] 응답 데이터 파싱 실패 - 원본 : {}", sb, e);
+            log.error("[JSON ERROR] 응답 데이터 파싱 실패 - 값 : {}", sb);
+            log.error("[JSON ERROR] 응답 데이터 파싱 실패 - 원본 : {}", e.getMessage());
             throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);
