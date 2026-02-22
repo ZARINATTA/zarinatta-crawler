@@ -8,6 +8,7 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class TicketScheduler {
      * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
      */
     public void getTicketByRange(LocalDate start, LocalDate end) {
-        log.info("=========[수동] 열차 데이터 수집 시작: {} ~ {} =========", start, end);
+        log.info("=========[TicketScheduler] 열차 데이터 수집 시작: {} ~ {} =========", start, end);
         LocalDate targetDate = start;
         while (!targetDate.isAfter(end)) {
             getTicketByAPI(targetDate);
@@ -50,13 +51,13 @@ public class TicketScheduler {
     /**
      * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
      */
-    //@Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
         LocalDate targetDate = LocalDate.now().plusDays(5);
         log.info("=========================================================");
-        log.info("[스케쥴러] 기차 시간표 수집 작업 시작 | 대상 날짜: {}", targetDate);
+        log.info("[TicketScheduler] 기차 시간표 수집 작업 시작 | 대상 날짜: {}", targetDate);
         log.info("=========================================================");
         getTicketByAPI(targetDate);
     }
