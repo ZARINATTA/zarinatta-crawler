@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ApiService {
 
-    private final int CONN_TIMEOUT_VALUE = 5000;
+    private final int CONN_TIMEOUT_VALUE = 3000;
     private final int READ_TIMEOUT_VALUE = 5000;
     private final int RETRY_COUNT = 3;
     private final int DELAY_TIME = 2000;
@@ -73,14 +73,27 @@ public class ApiService {
     public StringBuilder recover(Exception e, URL url) {
         log.error("[ApiService] 최종 실패 - URL : {}", url);
         log.error("[ApiService] 원본 Exception: ", e);
-        FailedTicketLog errorLog = FailedTicketLog.builder()
-                .requestUrl(url.toString())
-                .failMessage(e.getMessage())
-                .isSolved(false)
-                .retryCount(0)
-                .failedAt(LocalDateTime.now())
-                .build();
-        failedTicketLogRepository.save(errorLog);
+
+        String requestUrl = url.toString();
+        String errorMessage = e.getMessage();
+        LocalDateTime now = LocalDateTime.now();
+
+        failedTicketLogRepository.findByRequestUrlAndIsSolved(requestUrl, false)
+                .ifPresentOrElse(
+                        existingLog -> {
+                            existingLog.increaseRetryCount(errorMessage);
+                        },
+                        () -> {
+                            FailedTicketLog errorLog = FailedTicketLog.builder()
+                                    .requestUrl(requestUrl)
+                                    .failMessage(errorMessage)
+                                    .isSolved(false)
+                                    .retryCount(0)
+                                    .failedAt(now)
+                                    .build();
+                            failedTicketLogRepository.save(errorLog);
+                        }
+                );
         return new StringBuilder();
     }
 

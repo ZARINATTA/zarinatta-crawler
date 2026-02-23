@@ -42,4 +42,20 @@ public class FailedTicketLog {
         this.retryCount = retryCount;
         this.failedAt = failedAt;
     }
+
+    /**
+     * 재시도 후 성공 처리 메서드
+     */
+    public void markAsSolved() {
+        this.isSolved = true;
+    }
+
+    /**
+     * 재시도 후 실패 처리 메서드 - 실패 메시지 업데이트, 재시도 횟수 증가, 실패 시간 업데이트
+     */
+    public void increaseRetryCount(String failMessage) {
+        this.failMessage = failMessage;
+        this.retryCount += 1;
+        this.failedAt = LocalDateTime.now();
+    }
 }

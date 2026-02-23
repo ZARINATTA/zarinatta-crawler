@@ -62,6 +62,19 @@ public class TicketScheduler {
         getTicketByAPI(targetDate);
     }
 
+    public void processSingleRequest(URL url) {
+        try {
+            // 1. API 호출
+            StringBuilder sb = apiService.callTrainApi(url);
+            // 2. JSON 파싱 및 저장
+            convertToJsonAndSave(sb);
+        } catch (IOException e) {
+            log.error("[processSingleRequest] API 호출 실패 - URL: {}", url);
+            log.error("[processSingleRequest] 원본 예외: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
     private void getTicketByAPI(LocalDate targetDate) {
         for (StationCode departureId : StationCode.values()) {
             for (StationCode arriveId : StationCode.values()) {
