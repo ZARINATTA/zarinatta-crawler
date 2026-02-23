@@ -40,11 +40,11 @@ public class InitialTrainDataSetting implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        log.info("초기 데이터 세팅 START - 시작 시간 : {}", LocalDateTime.now());
         //initialDataSet();
     }
 
     public void initialDataSet() {
+        log.info("초기 데이터 세팅 START - 시작 시간 : {}", LocalDateTime.now());
         for (LocalDate date = LocalDate.now(); LocalDate.now().plusDays(5).isAfter(date); date = date.plusDays(1)) {
             for (StationCode departureId : StationCode.values()) {
                 for (StationCode arriveId : StationCode.values()) {

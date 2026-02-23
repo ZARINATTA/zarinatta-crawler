@@ -1,7 +1,9 @@
 package com.zarinatta.zarinattacrawler.sns;
 
 import com.zarinatta.zarinattacrawler.entity.BookMark;
+import com.zarinatta.zarinattacrawler.entity.SmsMessage;
 import com.zarinatta.zarinattacrawler.repository.BookMarkRepository;
+import com.zarinatta.zarinattacrawler.repository.SmsMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -20,6 +22,7 @@ public class SnsManager {
 
     private final SnsClient snsClient;
     private final BookMarkRepository bookMarkRepository;
+    private final SmsMessageRepository smsMessageRepository;
 
     public void sendSns(String message, String phoneNumber) {
         long startTime = System.currentTimeMillis();
@@ -45,6 +48,7 @@ public class SnsManager {
             PublishResponse publish = snsClient.publish(smsMessage);
             bookMark.messageIsSent();
             bookMarkRepository.save(bookMark);
+            smsMessageRepository.save(SmsMessage.success(message, phoneNumber, bookMark, publish.messageId()));
             log.info("문자 전송 완료 - SMS Id : {}", publish.messageId());
         } catch (Exception e) {
             log.error("문자 전송 실패: {}", e.getMessage());
