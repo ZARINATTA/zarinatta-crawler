@@ -36,7 +36,7 @@ public class ExternalApiController {
     public String callTrainInfoApiWithRange(@RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         ticketScheduler.getTicketByRange(startDate, endDate);
-        return "{} ~ {} 기간의 열차 정보를 수집합니다.".formatted(startDate, endDate);
+        return "%s ~ %s 기간의 열차 정보를 수집합니다.".formatted(startDate, endDate);
     }
 
     /**
