@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Slf4j
