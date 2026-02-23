@@ -38,6 +38,9 @@ public class TicketSchedulerV2 {
     private final String ENCODE = "UTF-8";
     private final Semaphore dbSemaphore = new Semaphore(10);
 
+    /**
+     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (가상 스레드 활용)
+     */
     // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         LocalDateTime startTime = LocalDateTime.now();
