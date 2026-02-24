@@ -24,7 +24,7 @@ public class User {
     @Column(name = "USER_NICK", nullable = false)
     private String userNick;
 
-    @Column(name = "USER_PHONE", nullable = false)
+    @Column(name = "USER_PHONE", nullable = true)
     private String userPhoneNumber;
 
     @Column(name = "USER_DEVICE_TOKEN")
