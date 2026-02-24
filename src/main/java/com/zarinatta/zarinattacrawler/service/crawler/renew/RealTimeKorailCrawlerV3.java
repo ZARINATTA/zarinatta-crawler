@@ -21,8 +21,8 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,10 +33,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.concurrent.ThreadLocalRandom.current;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class RealTimeKorailCrawlerV3 {
 
     private final CloseableHttpClient httpClient;
@@ -48,10 +49,16 @@ public class RealTimeKorailCrawlerV3 {
     private static final String SEARCH_PATH = "/classes/com.korail.mobile.seatMovie.ScheduleView";
     private static final String DEFAULT_USER_AGENT = "Dalvik/2.1.0 (Linux; U; Android 5.1.1; Nexus 4 Build/LMY48T)";
 
-    // @Scheduled(fixedDelay = 30000)
+    /**
+     * 2026.02.22 기준 사용 중
+     */
+    @Scheduled(fixedDelay = 10000)
     public void startCycle() {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
+        LocalDateTime now = LocalDateTime.now();
+        String dateStr = dateFormatter.format(now);
+        String timeStr = timeFormatter.format(now);
         int page = 0;
         int chunkSize = 100;
 
@@ -73,8 +80,8 @@ public class RealTimeKorailCrawlerV3 {
             if (pageResult.hasNext()) {
                 page++;
                 pageResult = bookMarkRepository.findChunkByAfterNow(
-                        dateFormatter.format(LocalDateTime.now()),
-                        timeFormatter.format(LocalDateTime.now()),
+                        dateStr,
+                        timeStr,
                         PageRequest.of(page, chunkSize)
                 );
             } else {
@@ -94,6 +101,9 @@ public class RealTimeKorailCrawlerV3 {
         return ticketBookMarkMap;
     }
 
+    /**
+     * 각 티켓에 대해 실시간으로 좌석 상황을 크롤링
+     */
     private void realtimeSeatCrawler(Map<Ticket, List<BookMark>> ticketBookMarkMap) {
         for (Map.Entry<Ticket, List<BookMark>> ticketBookMarkSet : ticketBookMarkMap.entrySet()) {
             Ticket target = ticketBookMarkSet.getKey();
@@ -120,9 +130,22 @@ public class RealTimeKorailCrawlerV3 {
             } catch (Exception e) {
                 log.error("Exception during crawling", e);
             }
+            try {
+                // 1초 ~ 3초 사이의 랜덤 딜레이
+                long minDelayMillis = 1000;
+                long maxDelayMillis = 3000;
+                long randomDelay = current().nextLong(minDelayMillis, maxDelayMillis);
+                Thread.sleep(randomDelay);
+            } catch (InterruptedException e) {
+                log.error("크롤링 대기 중 인터럽트 발생", e);
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
+    /**
+     * 타켓에 맞는 GET 요청 생성
+     */
     private HttpGet makeHttpGet(StationCode depart, StationCode arrive, String targetDate, String targetTime) {
         try {
             URI uri = new URIBuilder()
@@ -213,13 +236,15 @@ public class RealTimeKorailCrawlerV3 {
                 String phoneNumber = user.getUserPhoneNumber();
                 snsManager.sendSnsForBookMark(message.toString(), phoneNumber, bookMark);
                 bookMark.messageIsSent();
+                bookMarkRepository.save(bookMark);
                 log.info(message.toString());
             }
         }
     }
 
 
-    @Getter @Setter
+    @Getter
+    @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class KorailSearchResponse {
         @JsonProperty("strResult")
@@ -235,14 +260,16 @@ public class RealTimeKorailCrawlerV3 {
         private TrainInfoListWrapper trainInfos;
     }
 
-    @Getter @Setter
+    @Getter
+    @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TrainInfoListWrapper {
         @JsonProperty("trn_info")
         private List<TrainInfo> trainInfoList;
     }
 
-    @Getter @Setter
+    @Getter
+    @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TrainInfo {
         @JsonProperty("h_trn_clsf_nm")
