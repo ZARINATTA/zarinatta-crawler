@@ -8,6 +8,7 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -34,6 +35,7 @@ public class TrainInfoApiServiceV1 {
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
 
+    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainInfo() {
         for (StationCode depPlaceId : StationCode.values()) {
             for (StationCode arrPlaceId : StationCode.values()) {
@@ -56,6 +58,9 @@ public class TrainInfoApiServiceV1 {
                 }
             }
         }
+        LocalDateTime endTime = LocalDateTime.now();
+        log.info("=========[TrainInfoApiServiceV1] 기차 시간표 수집 및 DB 저장 완료 =========");
+        log.info("종료 시간 : {}", endTime);
     }
 
 
