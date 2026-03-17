@@ -74,7 +74,6 @@ public class HttpClientConfig {
             public void run() {
                 try {
                     if (connectionManager != null) {
-                        log.info("{} : 만료, idle 커넥션 종료.", Thread.currentThread().getName());
                         connectionManager.closeExpired();
                         connectionManager.closeIdle(TimeValue.ofSeconds(30));
                     } else {

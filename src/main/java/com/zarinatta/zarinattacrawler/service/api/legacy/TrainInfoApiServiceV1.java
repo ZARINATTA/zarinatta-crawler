@@ -22,7 +22,6 @@ import java.net.URLEncoder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,16 +44,16 @@ public class TrainInfoApiServiceV1 {
                     URL url = getUrl(depPlaceId, arrPlaceId);
                     // API 호출
                     LocalDateTime second = LocalDateTime.now();
-                    log.info("URL 생성 시간 : {}ms", ChronoUnit.MILLIS.between(first, second));
+                    //log.info("URL 생성 시간 : {}ms", ChronoUnit.MILLIS.between(first, second));
                     StringBuilder sb = callTrainApi(url);
                     // 호출 결과 파싱 및 저장
                     LocalDateTime third = LocalDateTime.now();
-                    log.info("OPEN API 응답 시간 : {}ms", ChronoUnit.MILLIS.between(second, third));
+                    //log.info("OPEN API 응답 시간 : {}ms", ChronoUnit.MILLIS.between(second, third));
                     convertToJsonAndSave(sb);
                     LocalDateTime fourth = LocalDateTime.now();
-                    log.info("DB 저장 시간 : {}ms", ChronoUnit.MILLIS.between(third, fourth));
+                    //log.info("DB 저장 시간 : {}ms", ChronoUnit.MILLIS.between(third, fourth));
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    log.error("API 호출 실패 - 출발: {}, 도착: {}, 에러: {}", depPlaceId, arrPlaceId, e.getMessage());
                 }
             }
         }
@@ -65,7 +64,7 @@ public class TrainInfoApiServiceV1 {
 
 
     private URL getUrl(StationCode depPlaceId, StationCode arrPlaceId) throws UnsupportedEncodingException, MalformedURLException {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now().plusDays(5);
         DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
         StringBuilder urlBuilder = new StringBuilder(requestUrl);
         urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
@@ -128,7 +127,6 @@ public class TrainInfoApiServiceV1 {
             }
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 중 에러 발생", e);
-            throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);
     }
