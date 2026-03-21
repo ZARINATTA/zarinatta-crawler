@@ -2,6 +2,7 @@ package com.zarinatta.zarinattacrawler.controller;
 
 import com.zarinatta.zarinattacrawler.service.api.TicketScheduler;
 import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiServiceV1;
+import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiServiceV2;
 import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiTest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class ExternalApiController {
     private final TicketScheduler ticketScheduler;
     private final TrainInfoApiTest trainInfoApiTest;
     private final TrainInfoApiServiceV1 trainInfoApiServiceV1;
+    private final TrainInfoApiServiceV2 trainInfoApiServiceV2;
 
     @GetMapping("/trainInfo")
     public String callTrainInfoApi() {
@@ -45,6 +47,12 @@ public class ExternalApiController {
     @GetMapping("/mono/trainInfo")
     public String callTrainInfoApiMono() {
         trainInfoApiServiceV1.getTrainInfo();
+        return "ok";
+    }
+
+    @GetMapping("/mono/trainInfoV2")
+    public String callTrainInfoApiWithPool() {
+        trainInfoApiServiceV2.getTrainInfo();
         return "ok";
     }
 
