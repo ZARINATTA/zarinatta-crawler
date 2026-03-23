@@ -8,6 +8,7 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -16,19 +17,21 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TicketScheduler {
+public class TicketSchedulerV3 {
 
-    private final ApiService apiService;
+    private final ApiServiceV2 apiService;
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
@@ -36,21 +39,9 @@ public class TicketScheduler {
     private final String ENCODE = "UTF-8";
 
     /**
-     * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
-     */
-    public void getTicketByRange(LocalDate start, LocalDate end) {
-        log.info("=========[TicketScheduler] 열차 데이터 수집 시작: {} ~ {} =========", start, end);
-        LocalDate targetDate = start;
-        while (!targetDate.isAfter(end)) {
-            getTicketByAPI(targetDate);
-            targetDate = targetDate.plusDays(1);
-        }
-    }
-
-    /**
      * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
      */
-    //@Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
@@ -59,24 +50,16 @@ public class TicketScheduler {
         log.info("[TicketScheduler] 기차 시간표 수집 작업 시작 | 대상 날짜: {}", targetDate);
         log.info("=========================================================");
         getTicketByAPI(targetDate);
-    }
-
-    public void processSingleRequest(URL url) {
-        try {
-            StringBuilder sb = apiService.callTrainApi(url);
-            convertToJsonAndSave(sb);
-        } catch (IOException e) {
-            log.error("[processSingleRequest] API 호출 실패 - URL: {}", url);
-            log.error("[processSingleRequest] 원본 예외: {}", e.getMessage());
-            throw new RuntimeException(e);
-        }
+        LocalDateTime finishedAt = LocalDateTime.now();
+        log.info("[TicketScheduler] 기차 시간표 수집 작업 종료 시각: {}", finishedAt);
     }
 
     private void getTicketByAPI(LocalDate targetDate) {
+        List<Future<?>> futures = new ArrayList<>();
         for (StationCode departureId : StationCode.values()) {
             for (StationCode arriveId : StationCode.values()) {
                 if (departureId == arriveId) continue;
-                executorService.submit(() -> {
+                Future<?> future = executorService.submit(() -> {
                     try {
                         // 1. URL 생성
                         URL url = buildUrl(departureId, arriveId, targetDate);
@@ -90,6 +73,15 @@ public class TicketScheduler {
                         throw new RuntimeException(e);
                     }
                 });
+                futures.add(future);
+            }
+        }
+
+        for (Future<?> future : futures) {
+            try {
+                future.get();
+            } catch (Exception e) {
+                log.error("[TicketScheduler] 비동기 작업 대기 중 예외 발생", e);
             }
         }
     }

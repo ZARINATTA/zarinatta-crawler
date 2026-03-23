@@ -21,7 +21,6 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -47,12 +46,12 @@ public class RealTimeKorailCrawlerV3 {
 
     private static final String KORAIL_HOST = "smart.letskorail.com";
     private static final String SEARCH_PATH = "/classes/com.korail.mobile.seatMovie.ScheduleView";
-    private static final String DEFAULT_USER_AGENT = "Dalvik/2.1.0 (Linux; U; Android 5.1.1; Nexus 4 Build/LMY48T)";
+    private static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
 
     /**
      * 2026.02.22 기준 사용 중
      */
-    @Scheduled(fixedDelay = 10000)
+    //@Scheduled(fixedDelay = 10000)
     public void startCycle() {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmm");
@@ -91,7 +90,7 @@ public class RealTimeKorailCrawlerV3 {
     }
 
     /**
-     * 티켓별로 북마크한 유저들을 매핑
+     * 크롤링 횟수를 줄이고, 사용자에게 알림을 동시에 보내기 위해 사용자 즐겨찾기 데이터를 티켓 기준으로 그룹화
      */
     private Map<Ticket, List<BookMark>> makeBookMarkUserMap(List<BookMark> bookMarkList) {
         Map<Ticket, List<BookMark>> ticketBookMarkMap = new HashMap<>();
@@ -177,6 +176,9 @@ public class RealTimeKorailCrawlerV3 {
                     .build();
             HttpGet httpGet = new HttpGet(uri);
             httpGet.setHeader("User-Agent", DEFAULT_USER_AGENT);
+            httpGet.setHeader("Referer", "https://smart.letskorail.com/");
+            httpGet.setHeader("Origin", "https://smart.letskorail.com");
+
             return httpGet;
         } catch (Exception e) {
             throw new RuntimeException("Failed to build URI", e);
