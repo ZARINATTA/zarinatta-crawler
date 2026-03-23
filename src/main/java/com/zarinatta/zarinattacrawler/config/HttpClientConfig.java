@@ -28,8 +28,8 @@ public class HttpClientConfig {
     @Bean
     public PoolingAsyncClientConnectionManager poolingAsyncClientConnectionManager(){
         PoolingAsyncClientConnectionManager connManager = new PoolingAsyncClientConnectionManager();
-        connManager.setMaxTotal(100);
-        connManager.setDefaultMaxPerRoute(20);
+        connManager.setMaxTotal(50);
+        connManager.setDefaultMaxPerRoute(50);
         return connManager;
     }
 
