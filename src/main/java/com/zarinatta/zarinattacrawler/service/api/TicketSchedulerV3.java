@@ -41,7 +41,7 @@ public class TicketSchedulerV3 {
     /**
      * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
      */
-    @Scheduled(cron = "0 50 19 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 20 22 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
