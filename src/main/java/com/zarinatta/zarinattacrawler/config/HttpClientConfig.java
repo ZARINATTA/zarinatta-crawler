@@ -45,7 +45,7 @@ public class HttpClientConfig {
     public PoolingHttpClientConnectionManager poolingHttpClientConnectionManager() {
         PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
         connManager.setMaxTotal(100);
-        connManager.setDefaultMaxPerRoute(20);
+        connManager.setDefaultMaxPerRoute(30);
         return connManager;
     }
 
