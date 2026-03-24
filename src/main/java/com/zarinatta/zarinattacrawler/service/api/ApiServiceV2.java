@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 public class ApiServiceV2 {
 
     private final int CONN_TIMEOUT_VALUE = 3000;
-    private final int READ_TIMEOUT_VALUE = 15000;
+    private final int READ_TIMEOUT_VALUE = 5000;
     private final int RETRY_COUNT = 3;
     private final int DELAY_TIME = 2000;
 
