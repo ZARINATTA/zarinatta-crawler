@@ -7,11 +7,13 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.core5.http.HeaderElement;
 import org.apache.hc.core5.http.message.BasicHeaderElementIterator;
 import org.apache.hc.core5.util.TimeValue;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,6 +32,15 @@ public class HttpClientConfig {
         return HttpClients.custom()
                 .setConnectionManager(poolingHttpClientConnectionManager())
                 .setKeepAliveStrategy(getKeepAliveStrategy())
+                .build();
+    }
+
+    @Bean
+    @Qualifier("nonPoolingHttpClient")
+    public CloseableHttpClient nonPoolingHttpClient() {
+        return HttpClients.custom()
+                .setConnectionManager(new BasicHttpClientConnectionManager())
+                .setConnectionReuseStrategy((request, response, context) -> false)
                 .build();
     }
 

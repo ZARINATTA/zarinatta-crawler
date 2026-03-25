@@ -9,6 +9,7 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.util.Timeout;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -30,6 +31,7 @@ public class ApiServiceV2 {
     private final int RETRY_COUNT = 3;
     private final int DELAY_TIME = 2000;
 
+    @Qualifier("nonPoolingHttpClient")
     private final CloseableHttpClient httpClient;
     private final FailedTicketLogRepository failedTicketLogRepository;
 
@@ -40,6 +42,7 @@ public class ApiServiceV2 {
     public StringBuilder callTrainApi(URL url) throws IOException {
         HttpGet request = new HttpGet(url.toString());
         request.setHeader("Content-type", "application/json");
+        request.setHeader("Connection", "close");
         request.setConfig(RequestConfig.custom()
                 .setConnectTimeout(Timeout.ofMilliseconds(CONN_TIMEOUT_VALUE))
                 .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT_VALUE))
