@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
@@ -38,9 +37,9 @@ public class TicketSchedulerV3 {
     private final String ENCODE = "UTF-8";
 
     /**
-     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
+     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.03.25 기준 사용중)
      */
-    //@Scheduled(cron = "0 20 22 * * *", zone = "Asia/Seoul")
+    //@Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
@@ -54,11 +53,10 @@ public class TicketSchedulerV3 {
     }
 
     private void getTicketByAPI(LocalDate targetDate) {
-        List<Future<?>> futures = new ArrayList<>();
         for (StationCode departureId : StationCode.values()) {
             for (StationCode arriveId : StationCode.values()) {
                 if (departureId == arriveId) continue;
-                Future<?> future = executorService.submit(() -> {
+                executorService.submit(() -> {
                     try {
                         // 1. URL 생성
                         URL url = buildUrl(departureId, arriveId, targetDate);
@@ -72,15 +70,6 @@ public class TicketSchedulerV3 {
                         throw new RuntimeException(e);
                     }
                 });
-                futures.add(future);
-            }
-        }
-
-        for (Future<?> future : futures) {
-            try {
-                future.get();
-            } catch (Exception e) {
-                log.error("[TicketScheduler] 비동기 작업 대기 중 예외 발생", e);
             }
         }
     }

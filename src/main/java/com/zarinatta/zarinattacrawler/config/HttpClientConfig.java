@@ -7,14 +7,15 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.core5.http.HeaderElement;
 import org.apache.hc.core5.http.message.BasicHeaderElementIterator;
 import org.apache.hc.core5.util.TimeValue;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +23,6 @@ import java.util.List;
 @Slf4j
 @Configuration
 public class HttpClientConfig {
-
-    private static final int IDLE_TIMEOUT = 30 * 1000;
 
     @Bean
     public CloseableHttpClient httpClient() {
@@ -33,8 +32,6 @@ public class HttpClientConfig {
                 .build();
     }
 
-    /**
-     *
     @Bean
     @Qualifier("nonPoolingHttpClient")
     public CloseableHttpClient nonPoolingHttpClient() {
@@ -42,18 +39,18 @@ public class HttpClientConfig {
                 .setConnectionManager(new BasicHttpClientConnectionManager())
                 .setConnectionReuseStrategy((request, response, context) -> false)
                 .build();
-    }* @return
-     */
+    }
 
     @Bean
     public PoolingHttpClientConnectionManager poolingHttpClientConnectionManager() {
         PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-        connManager.setMaxTotal(100);
-        connManager.setDefaultMaxPerRoute(100);
+        connManager.setMaxTotal(50);
+        connManager.setDefaultMaxPerRoute(30);
         return connManager;
     }
 
-    private ConnectionKeepAliveStrategy getKeepAliveStrategy() {
+    @Bean
+    public ConnectionKeepAliveStrategy getKeepAliveStrategy() {
         ConnectionKeepAliveStrategy keepAliveStrategy = (response, context) -> {
             BasicHeaderElementIterator it = new BasicHeaderElementIterator(
                     response.headerIterator("Keep-Alive"));
@@ -65,10 +62,14 @@ public class HttpClientConfig {
                     return TimeValue.ofSeconds(Long.parseLong(value));
                 }
             }
-            return TimeValue.ofSeconds(1200); // 기본 Keep-Alive 시간 설정
+            return TimeValue.ofSeconds(-1);
         };
         return keepAliveStrategy;
     }
+
+    /**
+     *
+
 
     @Bean
     public Runnable idleConnectionMonitor(final PoolingHttpClientConnectionManager connectionManager) {
@@ -89,8 +90,11 @@ public class HttpClientConfig {
             }
         };
     }
+    */
 
-
+    /**
+     * Async
+     */
     @Bean
     public PoolingAsyncClientConnectionManager poolingAsyncClientConnectionManager(){
         PoolingAsyncClientConnectionManager connManager = new PoolingAsyncClientConnectionManager();
@@ -112,7 +116,6 @@ public class HttpClientConfig {
     /**
      * legacy
      */
-
     @Bean
     public HttpPost httpPost() {
         HttpPost httpPost = new HttpPost("https://www.letskorail.com/ebizprd/EbizPrdTicketPr21111_i1.do");

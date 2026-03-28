@@ -41,6 +41,7 @@ public class ApiService {
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-type", "application/json");
+            conn.setRequestProperty("Connection", "keep-alive");
             conn.setConnectTimeout(CONN_TIMEOUT_VALUE);
             conn.setReadTimeout(READ_TIMEOUT_VALUE);
 
