@@ -90,7 +90,7 @@ public class RealTimeKorailCrawlerV3 {
     }
 
     /**
-     * 크롤링 횟수를 줄이고, 사용자에게 알림을 동시에 보내기 위해 사용자 즐겨찾기 데이터를 티켓 기준으로 그룹화
+     * 크롤링 횟수를 줄이고 유저에게 알림을 동시에 보내기 위해 즐겨찾기 데이터를 티켓 기준으로 그룹화
      */
     private Map<Ticket, List<BookMark>> makeBookMarkUserMap(List<BookMark> bookMarkList) {
         Map<Ticket, List<BookMark>> ticketBookMarkMap = new HashMap<>();

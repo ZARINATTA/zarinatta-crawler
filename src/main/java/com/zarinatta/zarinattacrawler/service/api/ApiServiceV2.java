@@ -47,7 +47,6 @@ public class ApiServiceV2 {
 
         try (CloseableHttpResponse response = httpClient.execute(request)) {
             int responseCode = response.getCode();
-
             if (responseCode >= 500) {
                 String errorBody = readResponseBody(response);
                 log.error("[ApiService] 5xx 에러 발생 - URL: {}, Code: {}, Reason: {}", url, responseCode, errorBody);
