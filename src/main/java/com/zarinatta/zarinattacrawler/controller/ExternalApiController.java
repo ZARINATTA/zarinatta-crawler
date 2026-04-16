@@ -49,7 +49,7 @@ public class ExternalApiController {
         return "%s ~ %s 기간의 열차 정보를 수집합니다.".formatted(startDate, endDate);
     }
 
-    @GetMapping("/trainInfo/test")
+    @GetMapping("/trainInfo/pool")
     public String callTrainInfoApiTest() {
         trainSchedulerV3.getTrainSchedule();
         return "ok";
