@@ -25,6 +25,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * 초기 열차 데이터 세팅을 위한 클래스.
+ * - 애플리케이션 시작 시 실행되며, 특정 기간의 열차 시간표 데이터를 수집.
+ * - ExecutorService를 사용하여 병렬 처리하며, API 호출 및 JSON 파싱 후 DB에 저장.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -33,7 +38,7 @@ public class InitialTrainDataSetting implements CommandLineRunner {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
-    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
+    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newFixedThreadPool(30);
     private final String ENCODE = "UTF-8";

@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.api;
+package com.zarinatta.zarinattacrawler.service.api.legacy.v2;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
+import com.zarinatta.zarinattacrawler.service.api.ApiService;
+import com.zarinatta.zarinattacrawler.service.api.TicketSchedulerVT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,9 +27,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
+/**
+ * 구 OpenAPI 서버 연동 클라이언트.
+ *
+ * @deprecated 2026-09 서버 교체로 사용 중단.
+ *             {@link TicketSchedulerVT} 사용할 것.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Deprecated(since = "2026-09", forRemoval = true)
 public class TicketSchedulerV2 {
 
     private final ApiService apiService;

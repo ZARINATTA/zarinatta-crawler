@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.api;
+package com.zarinatta.zarinattacrawler.service.api.legacy.v2;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zarinatta.zarinattacrawler.entity.Ticket;
 import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
+import com.zarinatta.zarinattacrawler.service.api.ApiServiceV2;
+import com.zarinatta.zarinattacrawler.service.api.TicketSchedulerPool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,12 +26,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+/**
+ * 구 OpenAPI 서버 연동 클라이언트.
+ *
+ * @deprecated 2026-09 서버 교체로 사용 중단.
+ *             {@link TicketSchedulerPool} 사용할 것.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TicketScheduler {
+@Deprecated(since = "2026-09", forRemoval = true)
+public class TicketSchedulerV3 {
 
-    private final ApiService apiService;
+    private final ApiServiceV2 apiService;
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
@@ -36,40 +46,19 @@ public class TicketScheduler {
     private final String ENCODE = "UTF-8";
 
     /**
-     * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
+     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (2026.03.25 기준 사용)
      */
-    public void getTicketByRange(LocalDate start, LocalDate end) {
-        log.info("=========[TicketScheduler] 열차 데이터 수집 시작: {} ~ {} =========", start, end);
-        LocalDate targetDate = start;
-        while (!targetDate.isAfter(end)) {
-            getTicketByAPI(targetDate);
-            targetDate = targetDate.plusDays(1);
-        }
-    }
-
-    /**
-     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장
-     */
-    //@Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
     public void getTrainSchedule() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
         executor.prestartAllCoreThreads();
-        LocalDate targetDate = LocalDate.now().plusDays(5);
+        LocalDate targetDate = LocalDate.now().plusDays(6);
         log.info("=========================================================");
         log.info("[TicketScheduler] 기차 시간표 수집 작업 시작 | 대상 날짜: {}", targetDate);
         log.info("=========================================================");
         getTicketByAPI(targetDate);
-    }
-
-    public void processSingleRequest(URL url) {
-        try {
-            StringBuilder sb = apiService.callTrainApi(url);
-            convertToJsonAndSave(sb);
-        } catch (IOException e) {
-            log.error("[processSingleRequest] API 호출 실패 - URL: {}", url);
-            log.error("[processSingleRequest] 원본 예외: {}", e.getMessage());
-            throw new RuntimeException(e);
-        }
+        LocalDateTime finishedAt = LocalDateTime.now();
+        log.info("[TicketScheduler] 기차 시간표 수집 작업 종료 시각: {}", finishedAt);
     }
 
     private void getTicketByAPI(LocalDate targetDate) {

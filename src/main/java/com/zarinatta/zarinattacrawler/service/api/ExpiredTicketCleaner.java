@@ -14,6 +14,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * 만료된 열차 티켓 데이터를 삭제하는 스케줄러.
+ * - 매일 자정에 실행되며, 10일 이전의 데이터를 삭제.
+ * - 즐겨찾기 데이터를 먼저 삭제한 후 티켓 데이터를 삭제.
+ * - TransactionTemplate을 사용하여 트랜잭션 단위로 처리.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

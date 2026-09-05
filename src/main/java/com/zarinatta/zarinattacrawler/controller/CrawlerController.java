@@ -40,13 +40,13 @@ public class CrawlerController {
     }
 
     @GetMapping("/realTime/renewal/v2")
-    public String startCrawlingv2() {
+    public String startCrawlingV2() {
         realTimeKorailCrawlerV2.startCycle();
         return "ok";
     }
 
     @GetMapping("/realTime/renewal/v3")
-    public String startCrawlingv3() {
+    public String startCrawlingV3() {
         realTimeKorailCrawlerV3.startCycle();
         return "ok";
     }

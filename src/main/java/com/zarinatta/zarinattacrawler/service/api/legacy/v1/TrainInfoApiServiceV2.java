@@ -1,4 +1,4 @@
-package com.zarinatta.zarinattacrawler.service.api.legacy;
+package com.zarinatta.zarinattacrawler.service.api.legacy.v1;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,7 +8,6 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -24,44 +23,49 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TrainInfoApiServiceV1 {
+public class TrainInfoApiServiceV2 {
 
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
 
+    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
 
     public void getTrainInfo() {
+        log.info("=========[TrainInfoApiServiceV2] 데이터 수집 시작 =========");
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
         for (StationCode depPlaceId : StationCode.values()) {
             for (StationCode arrPlaceId : StationCode.values()) {
-                try {
-                    // URL 생성
-                    LocalDateTime first = LocalDateTime.now();
-                    URL url = getUrl(depPlaceId, arrPlaceId);
-                    // API 호출
-                    LocalDateTime second = LocalDateTime.now();
-                    //log.info("URL 생성 시간 : {}ms", ChronoUnit.MILLIS.between(first, second));
-                    StringBuilder sb = callTrainApi(url);
-                    // 호출 결과 파싱 및 저장
-                    LocalDateTime third = LocalDateTime.now();
-                    //log.info("OPEN API 응답 시간 : {}ms", ChronoUnit.MILLIS.between(second, third));
-                    convertToJsonAndSave(sb);
-                    LocalDateTime fourth = LocalDateTime.now();
-                    //log.info("DB 저장 시간 : {}ms", ChronoUnit.MILLIS.between(third, fourth));
-                } catch (Exception e) {
-                    log.error("API 호출 실패 - 출발: {}, 도착: {}, 에러: {}", depPlaceId, arrPlaceId, e.getMessage());
-                }
+                // 출발역과 도착역이 같으면 호출할 필요가 없으므로 스킵 (API 호출 낭비 방지)
+                if (depPlaceId == arrPlaceId) continue;
+                // 작업을 스레드 풀에 제출하여 비동기로 실행
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        URL url = getUrl(depPlaceId, arrPlaceId);
+                        StringBuilder sb = callTrainApi(url);
+                        convertToJsonAndSave(sb);
+                    } catch (Exception e) {
+                        log.error("API 호출 실패 - 출발: {}, 도착: {}, 에러: {}", depPlaceId, arrPlaceId, e.getMessage());
+                    }
+                }, executorService);
+
+                futures.add(future);
             }
         }
+        // 모든 비동기 작업이 완료될 때까지 대기
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         LocalDateTime endTime = LocalDateTime.now();
-        log.info("=========[TrainInfoApiServiceV1] 기차 시간표 수집 및 DB 저장 완료 =========");
+        log.info("=========[TrainInfoApiServiceV2] 기차 시간표 수집 및 DB 저장 완료 =========");
         log.info("종료 시간 : {}", endTime);
     }
-
 
     private URL getUrl(StationCode depPlaceId, StationCode arrPlaceId) throws UnsupportedEncodingException, MalformedURLException {
         LocalDate today = LocalDate.now().plusDays(5);
@@ -74,15 +78,14 @@ public class TrainInfoApiServiceV1 {
         urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(depPlaceId.getCode(), "UTF-8"));
         urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arrPlaceId.getCode(), "UTF-8"));
         urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(today.format(total), "UTF-8"));
-        URL url = new URL(urlBuilder.toString());
-        return url;
+        return new URL(urlBuilder.toString());
     }
 
     private StringBuilder callTrainApi(URL url) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Content-type", "application/json");
-        //호출 결과 파싱
+
         BufferedReader rd;
         if (conn.getResponseCode() >= 200 && conn.getResponseCode() <= 300) {
             rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -128,6 +131,8 @@ public class TrainInfoApiServiceV1 {
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 중 에러 발생", e);
         }
-        ticketRepository.saveAll(ticketList);
+        if (!ticketList.isEmpty()) {
+            ticketRepository.saveAll(ticketList);
+        }
     }
 }
