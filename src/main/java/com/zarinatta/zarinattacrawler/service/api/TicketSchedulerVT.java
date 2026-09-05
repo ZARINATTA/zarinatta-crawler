@@ -1,0 +1,139 @@
+package com.zarinatta.zarinattacrawler.service.api;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zarinatta.zarinattacrawler.entity.Ticket;
+import com.zarinatta.zarinattacrawler.enums.StationCode;
+import com.zarinatta.zarinattacrawler.repository.TicketRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+
+/**
+ * 열차 시간표 데이터를 수집하고 저장하는 클래스 (가상 스레드 사용).
+ * - 매일 새벽 1시에 실행되어 특정 날짜의 열차 시간표 데이터를 수집.
+ * - 가상 스레드와 Semaphore를 사용하여 병렬 처리 및 DB 접근 제어.
+ * - API 호출 및 JSON 파싱 후 DB에 저장.
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class TicketSchedulerVT {
+
+    private final ApiService apiService;
+    private final TicketRepository ticketRepository;
+    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo";
+    private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
+    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final String ENCODE = "UTF-8";
+    private final Semaphore dbSemaphore = new Semaphore(10);
+
+    /**
+     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 (가상 스레드 활용)
+     */
+    // @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    public void getTrainSchedule() {
+        LocalDateTime startTime = LocalDateTime.now();
+        LocalDate weekAfter = LocalDate.now().plusDays(5);
+        log.info("========= {} 기차 시간표 배치 작업 시작=========", weekAfter);
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (StationCode departureId : StationCode.values()) {
+                for (StationCode arriveId : StationCode.values()) {
+                    if (departureId == arriveId) continue;
+                    executorService.submit(() -> {
+                        try {
+                            dbSemaphore.acquire();
+                            // URL 생성
+                            URL url = buildUrl(departureId, arriveId, weekAfter);
+                            // API 호출
+                            StringBuilder sb = apiService.callTrainApi(url);
+                            // JSON 파싱 및 저장
+                            convertToJsonAndSave(sb);
+                        } catch (IOException e) {
+                            log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
+                            log.error("원본 예외 : ", e);
+                            throw new RuntimeException(e);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            dbSemaphore.release(); // 작업 완료 후 허가 반납
+                        }
+                    });
+                }
+            }
+        }
+        LocalDateTime endTime = LocalDateTime.now();
+        log.info("========= {} 기차 시간표 배치 작업 끝=========", weekAfter);
+        log.info("소요시간 : {} minute =========", ChronoUnit.MINUTES.between(startTime, endTime));
+    }
+
+    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate weekAfter) {
+        DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
+        StringBuilder urlBuilder = new StringBuilder(requestUrl);
+        try {
+            urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + serviceKey);
+            urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + URLEncoder.encode("1", ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("1000", ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(weekAfter.format(total), ENCODE));
+            URL url = new URL(urlBuilder.toString());
+            return url;
+        } catch (UnsupportedEncodingException e) {
+            log.error("URL 인코딩 중 에러 발생", e);
+            throw new RuntimeException(e);
+        } catch (MalformedURLException e) {
+            log.error("URL 생성 중 에러 발생", e);
+            throw new RuntimeException(e);
+        }
+    }
+    public void convertToJsonAndSave(StringBuilder sb) {
+        ObjectMapper mapper = new ObjectMapper();
+        List<Ticket> ticketList = new ArrayList<>();
+        try {
+            JsonNode rootNode = mapper.readTree(sb.toString());
+            JsonNode itemsNode = rootNode.path("response").path("body").path("items").path("item");
+            if (itemsNode.isArray()) {
+                for (JsonNode itemNode : itemsNode) {
+                    String depPlaceName = itemNode.path("depplacename").asText();
+                    String arrPlaceName = itemNode.path("arrplacename").asText();
+                    String depPlandTime = itemNode.path("depplandtime").asText();
+                    String arrPlandTime = itemNode.path("arrplandtime").asText();
+                    String trainGradeName = itemNode.path("traingradename").asText();
+                    String trainNo = itemNode.path("trainno").asText();
+                    int adultCharge = itemNode.path("adultcharge").asInt();
+                    ticketList.add(Ticket.builder()
+                            .ticketType(trainGradeName + " " + trainNo)
+                            .departDate(depPlandTime.substring(0, 8))
+                            .departStation(StationCode.valueOf(depPlaceName))
+                            .departTime(depPlandTime.substring(8, 12))
+                            .arriveStation(StationCode.valueOf(arrPlaceName))
+                            .arriveTime(arrPlandTime.substring(8, 12))
+                            .price(adultCharge + "원")
+                            .build());
+                }
+            }
+        } catch (JsonProcessingException e) {
+            log.error("JSON 파싱 중 에러 발생", e);
+            throw new RuntimeException(e);
+        }
+        ticketRepository.saveAll(ticketList);
+    }
+}
