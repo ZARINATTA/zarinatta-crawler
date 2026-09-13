@@ -8,9 +8,8 @@ import com.zarinatta.zarinattacrawler.enums.StationCode;
 import com.zarinatta.zarinattacrawler.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -24,56 +23,65 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * 초기 열차 데이터 세팅을 위한 클래스.
- * - 애플리케이션 시작 시 실행되며, 특정 기간의 열차 시간표 데이터를 수집.
- * - ExecutorService를 사용하여 병렬 처리하며, API 호출 및 JSON 파싱 후 DB에 저장.
+ * 열차 시간표 데이터를 수집하고 저장하는 클래스 (커넥션 풀 사용).
+ * - 매일 새벽 1시에 실행되어 특정 날짜의 열차 시간표 데이터를 수집.
+ * - ExecutorService를 사용하여 병렬 처리하며, 스레드 풀 크기를 30으로 설정.
+ * - API 호출 및 JSON 파싱 후 DB에 저장.
  */
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class InitialTrainDataSetting implements CommandLineRunner {
+public class TicketSchedulerPool {
 
-    private final ApiService apiService;
+    private final ApiServiceV2 apiService;
     private final TicketRepository ticketRepository;
     private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
-    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final String ENCODE = "UTF-8";
 
-    @Override
-    public void run(String... args) {
-        //initialDataSet();
+    /**
+     * 매일 새벽 1시에 기차 시간표 정보를 가져와 DB에 저장 - 커넥션 풀 (2026.09.02 기준 사용중)
+     */
+    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    public void getTrainSchedule() {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) executorService;
+        executor.prestartAllCoreThreads();
+        LocalDate targetDate = LocalDate.now().plusDays(6);
+        log.info("=========================================================");
+        log.info("[TicketScheduler] 기차 시간표 수집 작업 시작 | 대상 날짜: {}", targetDate);
+        log.info("=========================================================");
+        getTicketByAPI(targetDate);
+        LocalDateTime finishedAt = LocalDateTime.now();
+        log.info("[TicketScheduler] 기차 시간표 수집 작업 종료 시각: {}", finishedAt);
     }
 
-    public void initialDataSet() {
-        log.info("초기 데이터 세팅 START - 시작 시간 : {}", LocalDateTime.now());
-        for (LocalDate date = LocalDate.now(); LocalDate.now().plusDays(5).isAfter(date); date = date.plusDays(1)) {
-            for (StationCode departureId : StationCode.values()) {
-                for (StationCode arriveId : StationCode.values()) {
-                    LocalDate requestDate = date;
-                    executorService.submit(() -> {
-                        try {
-                            // URL 생성
-                            URL url = buildUrl(departureId, arriveId, requestDate);
-                            // API 호출
-                            StringBuilder sb = apiService.callTrainApi(url);
-                            // JSON 파싱 및 저장
-                            convertToJsonAndSave(sb);
-                        } catch (IOException e) {
-                            log.error("API 호출 중 예외 발생 departure: {}  arrive: {}", departureId, arriveId);
-                            log.error("API 호출 중 원본 예외", e);
-                            throw new RuntimeException(e);
-                        }
-                    });
-                }
+    private void getTicketByAPI(LocalDate targetDate) {
+        for (StationCode departureId : StationCode.values()) {
+            for (StationCode arriveId : StationCode.values()) {
+                if (departureId == arriveId) continue;
+                executorService.submit(() -> {
+                    try {
+                        // 1. URL 생성
+                        URL url = buildUrl(departureId, arriveId, targetDate);
+                        // 2. API 호출
+                        StringBuilder sb = apiService.callTrainApi(url);
+                        // 3. JSON 파싱 및 저장
+                        convertToJsonAndSave(sb);
+                    } catch (IOException e) {
+                        log.error("[IO ERROR] API 호출 실패 - 경로 {} -> {}", departureId, arriveId);
+                        log.error("[IO ERROR] 원본 예외 {} ", e.getMessage());
+                        throw new RuntimeException(e);
+                    }
+                });
             }
         }
     }
 
-    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate requestDate) {
+    private URL buildUrl(StationCode departureId, StationCode arriveId, LocalDate weekAfter) {
         DateTimeFormatter total = DateTimeFormatter.ofPattern("yyyyMMdd");
         StringBuilder urlBuilder = new StringBuilder(requestUrl);
         try {
@@ -83,19 +91,19 @@ public class InitialTrainDataSetting implements CommandLineRunner {
             urlBuilder.append("&" + URLEncoder.encode("_type", "UTF-8") + "=" + URLEncoder.encode("json", ENCODE));
             urlBuilder.append("&" + URLEncoder.encode("depPlaceId", "UTF-8") + "=" + URLEncoder.encode(departureId.getCode(), ENCODE));
             urlBuilder.append("&" + URLEncoder.encode("arrPlaceId", "UTF-8") + "=" + URLEncoder.encode(arriveId.getCode(), ENCODE));
-            urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(requestDate.format(total), ENCODE));
+            urlBuilder.append("&" + URLEncoder.encode("depPlandTime", "UTF-8") + "=" + URLEncoder.encode(weekAfter.format(total), ENCODE));
             URL url = new URL(urlBuilder.toString());
             return url;
         } catch (UnsupportedEncodingException e) {
-            log.error("URL 인코딩 중 에러 발생", e);
+            log.error("[URL ERROR] URL 인코딩 중 에러 발생", e);
             throw new RuntimeException(e);
         } catch (MalformedURLException e) {
-            log.error("URL 생성 중 에러 발생", e);
+            log.error("[URL ERROR] URL 생성 중 에러 발생", e);
             throw new RuntimeException(e);
         }
     }
 
-    public void convertToJsonAndSave(StringBuilder sb) {
+    private void convertToJsonAndSave(StringBuilder sb) {
         ObjectMapper mapper = new ObjectMapper();
         List<Ticket> ticketList = new ArrayList<>();
         try {
@@ -122,7 +130,8 @@ public class InitialTrainDataSetting implements CommandLineRunner {
                 }
             }
         } catch (JsonProcessingException e) {
-            log.error("JSON 파싱 중 에러 발생", e);
+            log.error("[JSON ERROR] 응답 데이터 파싱 실패 - 값 : {}", sb);
+            log.error("[JSON ERROR] 응답 데이터 파싱 실패 - 원본 : {}", e.getMessage());
             throw new RuntimeException(e);
         }
         ticketRepository.saveAll(ticketList);

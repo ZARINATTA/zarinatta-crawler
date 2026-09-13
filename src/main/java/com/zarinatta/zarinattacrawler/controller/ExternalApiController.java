@@ -1,10 +1,10 @@
 package com.zarinatta.zarinattacrawler.controller;
 
-import com.zarinatta.zarinattacrawler.service.api.TicketScheduler;
-import com.zarinatta.zarinattacrawler.service.api.TicketSchedulerV3;
-import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiServiceV1;
-import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiServiceV2;
-import com.zarinatta.zarinattacrawler.service.api.legacy.TrainInfoApiTest;
+import com.zarinatta.zarinattacrawler.service.api.TicketSchedulerNormal;
+import com.zarinatta.zarinattacrawler.service.api.TicketSchedulerPool;
+import com.zarinatta.zarinattacrawler.service.api.legacy.v1.TrainInfoApiServiceV1;
+import com.zarinatta.zarinattacrawler.service.api.legacy.v1.TrainInfoApiServiceV2;
+import com.zarinatta.zarinattacrawler.service.api.legacy.v1.TrainInfoApiTest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,8 +24,8 @@ import static java.time.LocalDateTime.now;
 @RequestMapping(value = "/api/v1/external")
 public class ExternalApiController {
 
-    private final TicketScheduler ticketScheduler;
-    private final TicketSchedulerV3 trainSchedulerV3;
+    private final TicketSchedulerNormal ticketScheduler;
+    private final TicketSchedulerPool trainSchedulerV3;
     private final TrainInfoApiTest trainInfoApiTest;
     private final TrainInfoApiServiceV1 trainInfoApiServiceV1;
     private final TrainInfoApiServiceV2 trainInfoApiServiceV2;
@@ -38,9 +38,6 @@ public class ExternalApiController {
 
     /**
      * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장
-     * @param startDate
-     * @param endDate
-     * @return
      */
     @GetMapping("/trainInfo/range")
     public String callTrainInfoApiWithRange(@RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -49,6 +46,9 @@ public class ExternalApiController {
         return "%s ~ %s 기간의 열차 정보를 수집합니다.".formatted(startDate, endDate);
     }
 
+    /**
+     * 커넥션 풀을 사용하여 6일 뒤 열차 시간표 정보를 가져와 DB에 저장
+     */
     @GetMapping("/trainInfo/pool")
     public String callTrainInfoApiTest() {
         trainSchedulerV3.getTrainSchedule();

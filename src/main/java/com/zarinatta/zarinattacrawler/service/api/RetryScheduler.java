@@ -11,12 +11,18 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.List;
 
+/**
+ * 실패한 티켓 로그를 재시도하는 스케줄러.
+ * - 매일 오전 7시에 실행되며, 실패한 티켓 데이터를 조회하여 재처리 시도.
+ * - 성공 시 해당 데이터를 '해결됨' 상태로 업데이트.
+ * - 실패 시 로그를 남기고 다음 데이터를 처리 후 재시도.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class RetryScheduler {
 
-    private final TicketScheduler ticketScheduler;
+    private final TicketSchedulerNormal ticketScheduler;
     private final FailedTicketLogRepository failedTicketLogRepository;
 
     @Scheduled(cron = "0 0 7 * * *", zone = "Asia/Seoul")

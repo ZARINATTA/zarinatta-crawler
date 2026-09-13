@@ -23,20 +23,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+/**
+ * 열차 시간표 데이터를 수집하고 저장하는 클래스.
+ * - 특정 기간의 열차 시간표 데이터를 수동으로 수집 가능.
+ * - API 호출을 통해 JSON 데이터를 가져오고, 이를 파싱하여 DB에 저장.
+ * - ExecutorService를 사용하여 병렬 처리 지원.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TicketScheduler {
+public class TicketSchedulerNormal {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
-    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
+    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
-    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final String ENCODE = "UTF-8";
 
     /**
-     * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장 (2026.02.12 기준 사용중)
+     * 수동으로 특정 기간의 열차 시간표 정보를 가져와 DB에 저장 (2026.09.02 기준 사용중)
      */
     public void getTicketByRange(LocalDate start, LocalDate end) {
         log.info("=========[TicketScheduler] 열차 데이터 수집 시작: {} ~ {} =========", start, end);

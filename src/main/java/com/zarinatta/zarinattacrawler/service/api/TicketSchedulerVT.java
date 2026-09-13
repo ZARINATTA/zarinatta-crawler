@@ -25,14 +25,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
+/**
+ * 열차 시간표 데이터를 수집하고 저장하는 클래스 (가상 스레드 사용).
+ * - 매일 새벽 1시에 실행되어 특정 날짜의 열차 시간표 데이터를 수집.
+ * - 가상 스레드와 Semaphore를 사용하여 병렬 처리 및 DB 접근 제어.
+ * - API 호출 및 JSON 파싱 후 DB에 저장.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TicketSchedulerV2 {
+public class TicketSchedulerVT {
 
     private final ApiService apiService;
     private final TicketRepository ticketRepository;
-    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo";
+    private final String requestUrl = "http://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo";
     private final String serviceKey = "HfhAs61GSdPS9xgGhAlNLbH0YlnRdtbNa7MZVlJ6dAN5r7e3AYePUE9nQZv7X0PDqltq3o6ljr%2BKkLWb5TNzjg%3D%3D";
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
     private final String ENCODE = "UTF-8";
